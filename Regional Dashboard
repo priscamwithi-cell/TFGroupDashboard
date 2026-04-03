@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tearfund — Regional Workforce Profiles</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+:root{
+  --teal:#1088A8;--td:#0a6880;--tm:#1499bc;--tl:#d0edf4;--tp:#eaf6fa;
+  --y:#F8D000;--yd:#d9b800;--yl:#fff7cc;
+  --wh:#fff;--ink:#0d2b35;--ink2:#1e4a5a;--sl:#4a7a8a;--mi:#8ab5c2;--cl:#cce5ed;--fog:#f0f8fb;
+  --sr:#1088A8;--mid:#F8D000;--jr:#E05A1E;
+  --pm:#1a8a5a;--ft:#c0392b;--ok:#1a8a5a;--wn:#e67e22;--dg:#c0392b;
+  --r:.4rem;--r2:.8rem;
+  --sh:0 2px 10px rgba(16,136,168,.10),0 1px 3px rgba(13,43,53,.06);
+  --shl:0 6px 32px rgba(16,136,168,.16),0 2px 8px rgba(13,43,53,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito Sans',sans-serif;background:var(--fog);color:var(--ink);font-size:14px}
+
+/* TOPBAR */
+.topbar{background:var(--teal);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(16,136,168,.25)}
+.logo-badge{background:var(--y);border-radius:6px;padding:4px 12px}
+.logo-text{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:var(--teal)}
+.brand-title{font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;color:#fff;margin-left:.75rem}
+.brand-sub{font-size:.72rem;color:rgba(255,255,255,.7);margin-left:.75rem}
+.topbar-badge{background:rgba(248,208,0,.2);border:1px solid rgba(248,208,0,.4);color:var(--y);font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:20px}
+
+/* REGION SELECTOR */
+.rsel{background:var(--td);padding:.7rem 2rem;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;border-bottom:3px solid var(--y);position:sticky;top:64px;z-index:190}
+.rsel-label{font-size:.65rem;font-weight:900;color:var(--y);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.rbtn{font-family:'Nunito',sans-serif;font-size:.79rem;font-weight:700;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:.35rem .95rem;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.rbtn:hover{background:rgba(255,255,255,.18);color:#fff}
+.rbtn.active{background:var(--y);border-color:var(--y);color:var(--td)}
+
+/* MAIN */
+.main{padding:1.25rem 2rem 3rem;max-width:1440px;margin:0 auto}
+
+/* TWO-PANEL LAYOUT */
+.layout{display:grid;grid-template-columns:340px 1fr;gap:1rem;align-items:start}
+
+/* COUNTRY LIST */
+.country-list{background:var(--wh);border-radius:var(--r2);box-shadow:var(--sh);border:1px solid var(--cl);overflow:hidden;position:sticky;top:130px}
+.cl-header{background:var(--td);padding:.75rem 1rem;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:900;color:var(--y);text-transform:uppercase;letter-spacing:.08em}
+.cl-region-row{display:flex;align-items:center;padding:.65rem 1rem;background:var(--tp);border-bottom:1px solid var(--cl);cursor:pointer;transition:background .15s;gap:.65rem}
+.cl-region-row:hover,.cl-region-row.active{background:var(--tl)}
+.cl-region-row.active{border-left:3px solid var(--teal)}
+.cl-country-row{display:flex;align-items:center;padding:.5rem 1rem .5rem 1.6rem;border-bottom:1px solid var(--fog);cursor:pointer;transition:background .15s;gap:.6rem}
+.cl-country-row:hover{background:var(--tp)}
+.cl-country-row.active{background:var(--tl);border-left:3px solid var(--teal)}
+.cl-name{flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)}
+.cl-count{font-size:.68rem;font-weight:700;font-family:'Nunito',sans-serif;color:var(--sl)}
+.cl-sr{font-size:.65rem;padding:.15rem .4rem;border-radius:8px;font-weight:700}
+
+/* DETAIL PANEL */
+.detail-panel{min-width:0}
+
+/* PROFILE HEADER */
+.profile-hdr{background:var(--td);border-radius:var(--r2);padding:1.1rem 1.3rem;margin-bottom:1rem;border-left:5px solid var(--y)}
+.profile-name{font-family:'Nunito',sans-serif;font-size:1.4rem;font-weight:900;color:#fff}
+.profile-sub{font-size:.75rem;color:rgba(255,255,255,.65);margin-top:.2rem}
+.profile-breadcrumb{font-size:.68rem;color:var(--y);font-weight:700;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem;margin-bottom:.9rem}
+@media(max-width:1300px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:var(--wh);border-radius:var(--r2);padding:.8rem .75rem .65rem;box-shadow:var(--sh);border:1px solid var(--cl);border-top:3px solid var(--accent,var(--teal))}
+.kpi-v{font-family:'Nunito',sans-serif;font-size:1.75rem;font-weight:900;color:var(--td);letter-spacing:-.04em;line-height:1}
+.kpi-v sup{font-size:.75rem;vertical-align:top;padding-top:.28rem;display:inline-block}
+.kpi-l{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sl);margin-top:.25rem}
+.kpi-s{font-size:.61rem;color:var(--mi);margin-top:.08rem}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:.9rem;margin-bottom:.9rem}
+
+/* CARD */
+.card{background:var(--wh);border-radius:var(--r2);padding:1rem;box-shadow:var(--sh);border:1px solid var(--cl)}
+.ct{font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:900;color:var(--td);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.1rem}
+.cs{font-size:.66rem;color:var(--sl);margin-bottom:.75rem}
+.chart-wrap{position:relative}
+
+/* STACKED BARS */
+.srow{display:grid;grid-template-columns:120px 1fr 44px;align-items:center;gap:.5rem;padding:.22rem .1rem;border-radius:var(--r);cursor:default;transition:background .12s}
+.srow:hover{background:var(--tp)}
+.slabel{font-size:.69rem;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strack{height:18px;border-radius:4px;overflow:hidden;display:flex;background:var(--fog)}
+.sseg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:800;color:rgba(255,255,255,.9)}
+.scount{font-size:.67rem;font-weight:700;color:var(--sl);text-align:right}
+
+/* PROG BARS */
+.prow{display:flex;align-items:center;gap:.55rem;padding:.22rem 0}
+.plabel{font-size:.68rem;width:110px;flex-shrink:0;color:var(--ink2);font-weight:600}
+.ptrack{flex:1;height:7px;background:var(--fog);border-radius:4px;overflow:hidden;border:1px solid var(--cl)}
+.pfill{height:100%;border-radius:4px}
+.pval{font-size:.67rem;width:36px;text-align:right;font-weight:800;color:var(--td);font-family:'Nunito',sans-serif}
+
+/* TABLE */
+.dtable{width:100%;border-collapse:collapse;font-size:.7rem}
+.dtable th{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);padding:.38rem .5rem;text-align:left;border-bottom:2px solid var(--tl)}
+.dtable td{padding:.32rem .5rem;border-bottom:1px solid var(--fog);color:var(--ink2);vertical-align:middle}
+.dtable tr:hover td{background:var(--tp)}
+.dtable td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-family:'Nunito',sans-serif}
+
+/* BADGE */
+.vbadge{display:inline-flex;align-items:center;font-size:.61rem;font-weight:700;padding:.1rem .4rem;border-radius:8px;margin-left:.3rem}
+.vup{background:#e8f8f0;color:var(--ok)}
+.vdn{background:#fdeee6;color:var(--dg)}
+.vne{background:var(--fog);color:var(--sl)}
+
+/* INSIGHT */
+.ins{border-radius:var(--r);padding:.55rem .75rem;margin-top:.6rem;font-size:.73rem;line-height:1.6}
+.ins-alert{background:#fdeee6;border-left:3px solid var(--dg);color:#7a2010}
+.ins-warn{background:#fff8e8;border-left:3px solid var(--yd);color:#7a5800}
+.ins-ok{background:#e8f8f0;border-left:3px solid var(--ok);color:#0a5a2a}
+.ins-info{background:var(--tp);border-left:3px solid var(--teal);color:var(--td)}
+
+/* NET FLOW BOX */
+.flow-row{display:flex;gap:.6rem;margin-bottom:.75rem}
+.flow-box{flex:1;background:var(--fog);border-radius:var(--r);padding:.55rem .6rem;text-align:center;border:1px solid var(--cl)}
+.flow-v{font-family:'Nunito',sans-serif;font-size:1.4rem;font-weight:900;line-height:1}
+.flow-l{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sl);margin-top:.15rem}
+
+/* GRADE PYR */
+.pyr-row{display:flex;align-items:center;gap:.5rem;padding:.2rem 0}
+.pyr-label{font-size:.67rem;width:75px;text-align:right;color:var(--ink2);font-weight:600}
+.pyr-bar{height:18px;border-radius:0 4px 4px 0;display:flex;align-items:center;padding-right:5px;justify-content:flex-end;min-width:4px;transition:width .4s}
+.pyr-n{font-size:.58rem;font-weight:800;color:#fff}
+.pyr-ext{font-size:.58rem;font-weight:800;padding-left:4px}
+.pyr-pct{font-size:.63rem;font-weight:700;width:45px;text-align:right;color:var(--sl);font-family:'Nunito',sans-serif}
+
+/* SECTION LABEL */
+.slb{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--teal);margin-bottom:.35rem;padding-bottom:.25rem;border-bottom:1px solid var(--cl)}
+
+/* COUNTRY NOTE */
+.small-n-note{background:var(--yl);border:1px solid var(--yd);border-radius:var(--r);padding:.4rem .65rem;font-size:.69rem;color:#7a5800;margin-bottom:.75rem}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .2s ease both}
+
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.country-list{position:static}}
+
+/* DEMO TAB TOGGLE */
+.demo-tabs{display:flex;gap:.4rem;margin:.9rem 0 .5rem;border-bottom:2px solid var(--cl)}
+.demo-tab{font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:700;padding:.35rem .9rem;border-radius:var(--r) var(--r) 0 0;cursor:pointer;background:var(--fog);color:var(--sl);border:1px solid var(--cl);border-bottom:none;transition:all .15s}
+.demo-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.demo-tab:hover:not(.active){background:var(--tl);color:var(--td)}
+.demo-panel{display:none}.demo-panel.active{display:block}
+.demo-note{font-size:.66rem;color:var(--mi);font-style:italic;margin-bottom:.6rem}
+</style>
+</head>
+<body>
+<div style="height:4px;background:var(--y)"></div>
+
+<nav class="topbar">
+  <div style="display:flex;align-items:center">
+    <div class="logo-badge"><span class="logo-text">tearfund</span></div>
+    <span class="brand-title">Regional &amp; Country Workforce Profiles — Talent Analytics</span>
+    <span class="brand-sub" style="margin-left:.4rem">· People &amp; Culture · December 2025</span>
+  </div>
+  <span class="topbar-badge">554 staff · 7 regions · 47 countries · Individual-level data</span>
+</nav>
+
+<div class="rsel">
+  <span class="rsel-label">Region:</span>
+  <button class="rbtn active" onclick="selectRegion('eca',this)">East &amp; Central Africa</button>
+  <button class="rbtn" onclick="selectRegion('wa',this)">West Africa</button>
+  <button class="rbtn" onclick="selectRegion('sea',this)">Southern &amp; East Africa</button>
+  <button class="rbtn" onclick="selectRegion('asia',this)">Asia</button>
+  <button class="rbtn" onclick="selectRegion('ena',this)">Eurasia &amp; North Africa</button>
+  <button class="rbtn" onclick="selectRegion('uk',this)">United Kingdom</button>
+  <button class="rbtn" onclick="selectRegion('lac',this)">Latin Am &amp; Caribbean</button>
+</div>
+
+<div class="main">
+  <div class="layout">
+    <div class="country-list" id="country-list"></div>
+    <div class="detail-panel" id="detail-panel"></div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+// ── ORG BENCHMARKS ────────────────────────────────────────────────
+const ORG={n:554,sr_pct:21.7,perm_pct:26.9,ft_pct:71.1,exit_rate:37.7,hire_rate_12m:15.3};
+
+// ── DATA ──────────────────────────────────────────────────────────
+const DATA={
+eca:{label:'East & Central Africa',color:'#E05A1E',n:241,senior_n:25,mid_n:128,junior_n:64,perm_n:34,ft_n:206,sr_pct:10.4,perm_pct:14.1,ft_pct:85.5,mob_up:15,mob_dn:22,exits_n:154,exit_rate:63.9,hire_12m:34,hire_rate_12m:14.1,net_flow:-120,
+tenure:{'< 1 yr':20,'1–3 yrs':96,'3–5 yrs':46,'5–10 yrs':62,'10+ yrs':17},
+grade_cts:{'Grade Exec':1,'Grade Head':1,'Grade 1':11,'Grade 2':12,'Grade 3':39,'Grade 4':48,'Grade 5':41,'Grade 6':15,'Grade 7':13,'Grade 8':23,'Grade 9':4,'Grade 10':9},
+hire_by_grade:{'Grade 1':1,'Grade 2':2,'Grade 3':2,'Grade 4':10,'Grade 5':3,'Grade 6':2,'Grade 7':3,'Grade 8':3,'Grade 10':3},
+groups:{'Core Operations':4,'Influencing & Programmes':232,'People & Culture':5},
+countries:{
+'Burundi':{n:16,senior_n:2,mid_n:10,junior_n:4,perm_n:11,ft_n:5,sr_pct:12.5,perm_pct:68.8,ft_pct:31.2,mob_up:0,mob_dn:0,exits_n:11,exit_rate:16.7,hire_12m:3,hire_rate_12m:18.8,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':6,'Grade 5':2,'Grade 8':2,'Grade 10':2},tenure:{'< 1 yr':2,'1–3 yrs':3,'3–5 yrs':6,'5–10 yrs':4,'10+ yrs':1},hire_by_grade:{'Grade 4':2,'Grade 10':1}},
+'Central African Republic':{n:50,senior_n:4,mid_n:21,junior_n:11,perm_n:11,ft_n:38,sr_pct:8.0,perm_pct:22.0,ft_pct:76.0,mob_up:8,mob_dn:13,exits_n:36,exit_rate:76.0,hire_12m:8,hire_rate_12m:16.0,net_flow:-6,grade_cts:{'Grade 1':2,'Grade 2':2,'Grade 3':3,'Grade 4':9,'Grade 5':9,'Grade 6':3,'Grade 7':1,'Grade 8':3,'Grade 9':2,'Grade 10':2},tenure:{'< 1 yr':3,'1–3 yrs':28,'3–5 yrs':8,'5–10 yrs':11,'10+ yrs':0},hire_by_grade:{'Grade 4':3,'Grade 5':1,'Grade 10':1}},
+'Democratic Republic of Congo':{n:43,senior_n:3,mid_n:17,junior_n:14,perm_n:0,ft_n:43,sr_pct:7.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:8,exits_n:31,exit_rate:153.5,hire_12m:5,hire_rate_12m:11.6,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':8,'Grade 4':3,'Grade 5':6,'Grade 7':8,'Grade 8':4,'Grade 9':1,'Grade 10':1},tenure:{'< 1 yr':2,'1–3 yrs':9,'3–5 yrs':9,'5–10 yrs':21,'10+ yrs':2},hire_by_grade:{'Grade 7':2,'Grade 10':1}},
+'Ethiopia':{n:37,senior_n:4,mid_n:23,junior_n:10,perm_n:1,ft_n:36,sr_pct:10.8,perm_pct:2.7,ft_pct:97.3,mob_up:4,mob_dn:0,exits_n:12,exit_rate:7.1,hire_12m:8,hire_rate_12m:21.6,net_flow:-4,grade_cts:{'Grade 1':3,'Grade 2':1,'Grade 3':8,'Grade 4':11,'Grade 5':4,'Grade 6':4,'Grade 7':3,'Grade 8':3},tenure:{'< 1 yr':6,'1–3 yrs':19,'3–5 yrs':5,'5–10 yrs':6,'10+ yrs':1},hire_by_grade:{'Grade 1':1,'Grade 2':1,'Grade 4':2,'Grade 5':1,'Grade 7':1,'Grade 8':2}},
+'Rwanda':{n:28,senior_n:7,mid_n:19,junior_n:0,perm_n:9,ft_n:19,sr_pct:25.0,perm_pct:32.1,ft_pct:67.9,mob_up:1,mob_dn:0,exits_n:3,exit_rate:6.2,hire_12m:3,hire_rate_12m:10.0,net_flow:-1,grade_cts:{'Grade Exec':1,'Grade Head':1,'Grade 1':2,'Grade 2':4,'Grade 3':6,'Grade 4':14,'Grade 8':2},tenure:{'< 1 yr':3,'1–3 yrs':7,'3–5 yrs':5,'5–10 yrs':11,'10+ yrs':4},hire_by_grade:{'Grade 4':2,'Grade 8':1}},
+'South Sudan':{n:65,senior_n:4,mid_n:37,junior_n:23,perm_n:1,ft_n:64,sr_pct:6.2,perm_pct:1.5,ft_pct:98.5,mob_up:2,mob_dn:1,exits_n:1,exit_rate:55.4,hire_12m:7,hire_rate_12m:10.8,net_flow:2,grade_cts:{'Grade 1':2,'Grade 2':2,'Grade 3':12,'Grade 4':5,'Grade 5':20,'Grade 6':8,'Grade 7':1,'Grade 8':9,'Grade 9':1,'Grade 10':4},tenure:{'< 1 yr':4,'1–3 yrs':30,'3–5 yrs':13,'5–10 yrs':9,'10+ yrs':9},hire_by_grade:{'Grade 2':1,'Grade 3':2,'Grade 4':1,'Grade 5':1,'Grade 6':2}}
+}},
+
+wa:{label:'West Africa',color:'#8E44AD',n:82,senior_n:12,mid_n:48,junior_n:14,perm_n:26,ft_n:55,sr_pct:14.6,perm_pct:31.7,ft_pct:67.1,mob_up:11,mob_dn:6,exits_n:24,exit_rate:29.3,hire_12m:15,hire_rate_12m:18.3,net_flow:-9,
+tenure:{'< 1 yr':13,'1–3 yrs':22,'3–5 yrs':13,'5–10 yrs':27,'10+ yrs':7},
+grade_cts:{'Grade Head':1,'Grade 1':5,'Grade 2':6,'Grade 3':21,'Grade 4':22,'Grade 5':5,'Grade 6':1,'Grade 7':4,'Grade 8':7,'Grade 9':1,'Grade 10':1},
+hire_by_grade:{'Grade 1':1,'Grade 3':3,'Grade 4':4,'Grade 5':1,'Grade 7':3},
+groups:{'Core Operations':3,'Influencing & Programmes':77,'People & Culture':2},
+countries:{
+'Burkina Faso':{n:14,senior_n:2,mid_n:8,junior_n:1,perm_n:8,ft_n:5,sr_pct:14.3,perm_pct:57.1,ft_pct:35.7,mob_up:2,mob_dn:2,exits_n:5,exit_rate:42.9,hire_12m:4,hire_rate_12m:28.6,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':5,'Grade 4':3,'Grade 8':1},tenure:{'< 1 yr':4,'1–3 yrs':3,'3–5 yrs':1,'5–10 yrs':5,'10+ yrs':1},hire_by_grade:{'Grade 3':2}},
+'Chad':{n:9,senior_n:2,mid_n:4,junior_n:1,perm_n:4,ft_n:5,sr_pct:22.2,perm_pct:44.4,ft_pct:55.6,mob_up:2,mob_dn:0,exits_n:3,exit_rate:44.4,hire_12m:3,hire_rate_12m:33.3,net_flow:-2,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':2,'Grade 8':1},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':3},hire_by_grade:{'Grade 4':2}},
+'Ghana':{n:2,senior_n:1,mid_n:1,junior_n:0,perm_n:0,ft_n:2,sr_pct:50.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:1,exit_rate:32.4,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade 2':1,'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}},
+'Ivory Coast':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:2,ft_n:2,sr_pct:25.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:1,exit_rate:3.2,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Liberia':{n:1,senior_n:1,mid_n:0,junior_n:0,perm_n:0,ft_n:1,sr_pct:100.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:1,exit_rate:12.5,hire_12m:0,hire_rate_12m:0.0,net_flow:-2,grade_cts:{'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Mali':{n:8,senior_n:1,mid_n:6,junior_n:1,perm_n:7,ft_n:1,sr_pct:12.5,perm_pct:87.5,ft_pct:12.5,mob_up:0,mob_dn:0,exits_n:3,exit_rate:18.5,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1,'Grade 4':4,'Grade 5':1,'Grade 8':1},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':3,'5–10 yrs':4,'10+ yrs':0},hire_by_grade:{}},
+'Nigeria':{n:37,senior_n:2,mid_n:22,junior_n:10,perm_n:2,ft_n:35,sr_pct:5.4,perm_pct:5.4,ft_pct:94.6,mob_up:3,mob_dn:4,exits_n:1,exit_rate:35.1,hire_12m:7,hire_rate_12m:18.9,net_flow:4,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':9,'Grade 4':10,'Grade 5':3,'Grade 7':4,'Grade 8':4,'Grade 9':1,'Grade 10':1},tenure:{'< 1 yr':6,'1–3 yrs':11,'3–5 yrs':5,'5–10 yrs':14,'10+ yrs':1},hire_by_grade:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 5':1,'Grade 7':3}},
+'Sierra Leone':{n:2,senior_n:0,mid_n:2,junior_n:0,perm_n:2,ft_n:0,sr_pct:0.0,perm_pct:100.0,ft_pct:0.0,mob_up:2,mob_dn:0,exits_n:1,exit_rate:33.3,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Togo':{n:5,senior_n:2,mid_n:3,junior_n:0,perm_n:1,ft_n:4,sr_pct:40.0,perm_pct:20.0,ft_pct:80.0,mob_up:1,mob_dn:0,exits_n:1,exit_rate:14.3,hire_12m:1,hire_rate_12m:20.0,net_flow:1,grade_cts:{'Grade Head':1,'Grade 1':1,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':0,'1–3 yrs':3,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 4':1}}
+}},
+
+sea:{label:'Southern & East Africa',color:'#27AE60',n:66,senior_n:21,mid_n:44,junior_n:1,perm_n:25,ft_n:39,sr_pct:31.8,perm_pct:37.9,ft_pct:59.1,mob_up:5,mob_dn:0,exits_n:1,exit_rate:33.3,hire_12m:15,hire_rate_12m:22.7,net_flow:4,
+tenure:{'< 1 yr':13,'1–3 yrs':12,'3–5 yrs':14,'5–10 yrs':17,'10+ yrs':10},
+grade_cts:{'Grade Head':1,'Grade 1':5,'Grade 2':15,'Grade 3':21,'Grade 4':19,'Grade 5':4,'Grade 6':1},
+hire_by_grade:{'Grade 3':7,'Grade 4':7,'Grade 5':1},
+groups:{'Chief Executive':1,'Core Operations':3,'Influencing & Programmes':57,'People & Culture':5},
+countries:{
+'Kenya':{n:22,senior_n:8,mid_n:14,junior_n:0,perm_n:11,ft_n:11,sr_pct:36.4,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:33.3,hire_12m:3,hire_rate_12m:11.1,net_flow:-2,grade_cts:{'Grade 1':2,'Grade 2':7,'Grade 3':9,'Grade 4':5,'Grade 5':4},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':11,'5–10 yrs':7,'10+ yrs':4},hire_by_grade:{'Grade 3':2,'Grade 5':1}},
+'Malawi':{n:9,senior_n:2,mid_n:7,junior_n:0,perm_n:2,ft_n:6,sr_pct:22.2,perm_pct:22.2,ft_pct:66.7,mob_up:3,mob_dn:0,exits_n:0,exit_rate:27.3,hire_12m:5,hire_rate_12m:55.6,net_flow:4,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':5},tenure:{'< 1 yr':5,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':2},hire_by_grade:{'Grade 3':1,'Grade 4':4}},
+'Mozambique':{n:7,senior_n:1,mid_n:6,junior_n:0,perm_n:2,ft_n:5,sr_pct:14.3,perm_pct:28.6,ft_pct:71.4,mob_up:2,mob_dn:0,exits_n:0,exit_rate:9.1,hire_12m:3,hire_rate_12m:42.9,net_flow:2,grade_cts:{'Grade 1':1,'Grade 3':2,'Grade 4':4},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 3':2,'Grade 4':1}},
+'South Africa':{n:3,senior_n:3,mid_n:0,junior_n:0,perm_n:2,ft_n:1,sr_pct:100.0,perm_pct:66.7,ft_pct:33.3,mob_up:0,mob_dn:0,exits_n:0,exit_rate:7.1,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':3},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Tanzania':{n:1,senior_n:1,mid_n:0,junior_n:0,perm_n:0,ft_n:1,sr_pct:100.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:6.7,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Uganda':{n:3,senior_n:0,mid_n:3,junior_n:0,perm_n:0,ft_n:3,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:33.3,hire_12m:2,hire_rate_12m:66.7,net_flow:0,grade_cts:{'Grade 3':1,'Grade 4':2},tenure:{'< 1 yr':2,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{'Grade 4':2}},
+'Zambia':{n:6,senior_n:2,mid_n:4,junior_n:0,perm_n:2,ft_n:4,sr_pct:33.3,perm_pct:33.3,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:1,grade_cts:{'Grade Head':1,'Grade 2':1,'Grade 3':2,'Grade 4':2},tenure:{'< 1 yr':0,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':3,'10+ yrs':1},hire_by_grade:{}},
+'Zimbabwe':{n:9,senior_n:2,mid_n:6,junior_n:1,perm_n:2,ft_n:6,sr_pct:22.2,perm_pct:22.2,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:22.2,net_flow:2,grade_cts:{'Grade 2':2,'Grade 3':5,'Grade 4':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':5,'3–5 yrs':1,'5–10 yrs':2,'10+ yrs':1},hire_by_grade:{'Grade 3':2}}
+}},
+
+asia:{label:'Asia',color:'#2980B9',n:50,senior_n:16,mid_n:27,junior_n:6,perm_n:11,ft_n:39,sr_pct:32.0,perm_pct:22.0,ft_pct:78.0,mob_up:5,mob_dn:0,exits_n:0,exit_rate:14.0,hire_12m:12,hire_rate_12m:24.0,net_flow:5,
+tenure:{'< 1 yr':10,'1–3 yrs':6,'3–5 yrs':5,'5–10 yrs':16,'10+ yrs':13},
+grade_cts:{'Grade Head':1,'Grade 1':4,'Grade 2':11,'Grade 3':14,'Grade 4':9,'Grade 5':4,'Grade 7':1,'Grade 8':4,'Grade 9':1},
+hire_by_grade:{'Grade 2':2,'Grade 3':2,'Grade 4':4,'Grade 5':2,'Grade 7':1},
+groups:{'Core Operations':2,'Global Fundraising & Communications':1,'Influencing & Programmes':46,'People & Culture':1},
+countries:{
+'Bangladesh':{n:11,senior_n:3,mid_n:6,junior_n:2,perm_n:4,ft_n:7,sr_pct:27.3,perm_pct:36.4,ft_pct:63.6,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:4,hire_rate_12m:36.4,net_flow:2,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':2,'Grade 4':4,'Grade 8':2},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':5,'10+ yrs':1},hire_by_grade:{'Grade 3':2,'Grade 4':2}},
+'India':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:0,ft_n:4,sr_pct:25.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 8':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':3},hire_by_grade:{}},
+'Kyrgyzstan':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:1,ft_n:3,sr_pct:25.0,perm_pct:25.0,ft_pct:75.0,mob_up:0,mob_dn:0,exits_n:6,exit_rate:0.0,hire_12m:1,hire_rate_12m:25.0,net_flow:1,grade_cts:{'Grade 2':1,'Grade 5':2,'Grade 7':1},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':2},hire_by_grade:{'Grade 7':1}},
+'Malaysia':{n:2,senior_n:0,mid_n:2,junior_n:0,perm_n:0,ft_n:2,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Myanmar':{n:5,senior_n:0,mid_n:5,junior_n:0,perm_n:0,ft_n:5,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:40.0,net_flow:0,grade_cts:{'Grade 3':2,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':2,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':2,'10+ yrs':0},hire_by_grade:{'Grade 4':1,'Grade 5':1}},
+'Nepal':{n:11,senior_n:3,mid_n:6,junior_n:2,perm_n:1,ft_n:10,sr_pct:27.3,perm_pct:9.1,ft_pct:90.9,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:9.1,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':4,'Grade 4':1,'Grade 5':1,'Grade 8':1,'Grade 9':1},tenure:{'< 1 yr':1,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':5,'10+ yrs':4},hire_by_grade:{'Grade 5':1}},
+'Philippines':{n:6,senior_n:4,mid_n:2,junior_n:0,perm_n:2,ft_n:4,sr_pct:66.7,perm_pct:33.3,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:16.7,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':3,'Grade 3':2},tenure:{'< 1 yr':1,'1–3 yrs':1,'3–5 yrs':2,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 2':1}},
+'Sri Lanka':{n:4,senior_n:2,mid_n:2,junior_n:0,perm_n:2,ft_n:2,sr_pct:50.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:50.0,net_flow:2,grade_cts:{'Grade Head':1,'Grade 2':1,'Grade 3':1,'Grade 4':1},tenure:{'< 1 yr':2,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':1},hire_by_grade:{'Grade 2':1,'Grade 4':1}}
+}},
+
+ena:{label:'Eurasia & North Africa',color:'#D35400',n:50,senior_n:11,mid_n:36,junior_n:2,perm_n:2,ft_n:47,sr_pct:22.0,perm_pct:4.0,ft_pct:94.0,mob_up:6,mob_dn:1,exits_n:7,exit_rate:10.0,hire_12m:9,hire_rate_12m:18.0,net_flow:-61,
+tenure:{'< 1 yr':7,'1–3 yrs':13,'3–5 yrs':15,'5–10 yrs':11,'10+ yrs':4},
+grade_cts:{'Grade Head':1,'Grade 1':3,'Grade 2':7,'Grade 3':11,'Grade 4':12,'Grade 5':13,'Grade 8':2},
+hire_by_grade:{'Grade 2':1,'Grade 3':2,'Grade 4':4,'Grade 5':2},
+groups:{'Core Operations':3,'Influencing & Programmes':46,'People & Culture':1},
+countries:{
+'Iraq':{n:9,senior_n:1,mid_n:7,junior_n:0,perm_n:0,ft_n:9,sr_pct:11.1,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:1,exits_n:66,exit_rate:0.0,hire_12m:3,hire_rate_12m:33.3,net_flow:1,grade_cts:{'Grade 1':1,'Grade 3':3,'Grade 4':1,'Grade 5':3},tenure:{'< 1 yr':2,'1–3 yrs':4,'3–5 yrs':2,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{'Grade 3':2,'Grade 4':1}},
+'Jordan':{n:9,senior_n:3,mid_n:6,junior_n:0,perm_n:1,ft_n:8,sr_pct:33.3,perm_pct:11.1,ft_pct:88.9,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:11.1,net_flow:-30,grade_cts:{'Grade Head':1,'Grade 2':2,'Grade 3':1,'Grade 4':1,'Grade 5':4},tenure:{'< 1 yr':1,'1–3 yrs':3,'3–5 yrs':3,'5–10 yrs':2,'10+ yrs':0},hire_by_grade:{'Grade 2':1}},
+'Lebanon':{n:14,senior_n:3,mid_n:11,junior_n:0,perm_n:0,ft_n:13,sr_pct:21.4,perm_pct:0.0,ft_pct:92.9,mob_up:3,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:5,hire_rate_12m:35.7,net_flow:5,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':3,'Grade 4':5,'Grade 5':3},tenure:{'< 1 yr':4,'1–3 yrs':5,'3–5 yrs':5,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{'Grade 4':3,'Grade 5':2}},
+'Pakistan':{n:15,senior_n:2,mid_n:11,junior_n:2,perm_n:1,ft_n:14,sr_pct:13.3,perm_pct:6.7,ft_pct:93.3,mob_up:0,mob_dn:0,exits_n:38,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':3,'Grade 4':5,'Grade 5':3,'Grade 8':2},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':3,'5–10 yrs':7,'10+ yrs':4},hire_by_grade:{}},
+'Syria':{n:2,senior_n:1,mid_n:1,junior_n:0,perm_n:0,ft_n:2,sr_pct:50.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:4,exit_rate:11.1,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}}
+}},
+
+uk:{label:'United Kingdom',color:'#1088A8',n:58,senior_n:32,mid_n:22,junior_n:0,perm_n:48,ft_n:5,sr_pct:55.2,perm_pct:82.8,ft_pct:8.6,mob_up:2,mob_dn:0,exits_n:5,exit_rate:9.3,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,
+tenure:{'< 1 yr':0,'1–3 yrs':10,'3–5 yrs':13,'5–10 yrs':20,'10+ yrs':15},
+grade_cts:{'Grade Head':2,'Grade 1':12,'Grade 2':18,'Grade 3':12,'Grade 4':8,'Grade 5':5},
+hire_by_grade:{},
+groups:{'Chief Executive':5,'Core Operations':90,'Global Fundraising & Communications':160,'Influencing & Programmes':58,'People & Culture':22},
+countries:{
+'United Kingdom':{n:58,senior_n:32,mid_n:22,junior_n:0,perm_n:48,ft_n:5,sr_pct:55.2,perm_pct:82.8,ft_pct:8.6,mob_up:2,mob_dn:0,exits_n:31,exit_rate:1.7,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade Head':2,'Grade 1':12,'Grade 2':18,'Grade 3':12,'Grade 4':8,'Grade 5':5},tenure:{'< 1 yr':0,'1–3 yrs':10,'3–5 yrs':13,'5–10 yrs':20,'10+ yrs':15},hire_by_grade:{}}
+
+}},
+
+lac:{label:'Latin America & Caribbean',color:'#16A085',n:14,senior_n:5,mid_n:7,junior_n:2,perm_n:8,ft_n:5,sr_pct:35.7,perm_pct:57.1,ft_pct:35.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:7.1,net_flow:2,
+tenure:{'< 1 yr':1,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':9,'10+ yrs':2},
+grade_cts:{'Grade 1':1,'Grade 2':4,'Grade 3':2,'Grade 4':4,'Grade 5':1,'Grade 6':2},
+hire_by_grade:{'Grade 6':1},
+groups:{'Influencing & Programmes':14},
+countries:{
+'Brazil':{n:3,senior_n:1,mid_n:2,junior_n:0,perm_n:3,ft_n:0,sr_pct:33.3,perm_pct:100.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 4':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':2,'10+ yrs':1},hire_by_grade:{}},
+'Colombia':{n:4,senior_n:1,mid_n:3,junior_n:0,perm_n:1,ft_n:3,sr_pct:25.0,perm_pct:25.0,ft_pct:75.0,mob_up:0,mob_dn:0,exits_n:13,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':3,'10+ yrs':0},hire_by_grade:{}},
+'Ecuador':{n:2,senior_n:2,mid_n:0,junior_n:0,perm_n:1,ft_n:1,sr_pct:100.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Honduras':{n:3,senior_n:1,mid_n:1,junior_n:1,perm_n:3,ft_n:0,sr_pct:33.3,perm_pct:100.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':3,'10+ yrs':0},hire_by_grade:{}},
+'Peru':{n:1,senior_n:0,mid_n:1,junior_n:0,perm_n:0,ft_n:0,sr_pct:0.0,perm_pct:0.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}}
+}}
+};
+
+// ── CONSTANTS ─────────────────────────────────────────────────────
+const DEMO={"asia":{"total":49,"female":20,"male":29,"female_pct":40.8,"gender_grade":{"Grade 1":{"f":1,"m":3},"Grade 2":{"f":3,"m":7},"Grade 3":{"f":7,"m":7},"Grade 4":{"f":4,"m":5},"Grade 5":{"f":3,"m":1},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":0,"m":5},"Grade 9":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":8,"36-45":19,"46-60":21,"60+":1},"countries":{"Bangladesh":{"total":11,"female":2,"male":9,"female_pct":18.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":1,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":1,"m":3},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 2":{"36-45":2},"Grade 3":{"26-35":1,"46-60":1},"Grade 4":{"26-35":2,"36-45":1,"46-60":1},"Grade 8":{"36-45":1,"46-60":1}},"age_totals":{"26-35":3,"36-45":4,"46-60":4}},"India":{"total":4,"female":1,"male":3,"female_pct":25.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":1},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":1},"Grade 3":{"46-60":1},"Grade 4":{"36-45":1},"Grade 8":{"46-60":1}},"age_totals":{"36-45":1,"46-60":3}},"Indonesia":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 8":{"46-60":1}},"age_totals":{"46-60":1}},"Kyrgyzstan":{"total":4,"female":4,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 5":{"f":2,"m":0},"Grade 7":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 5":{"26-35":1,"46-60":1},"Grade 7":{"26-35":1}},"age_totals":{"26-35":2,"46-60":2}},"Malaysia":{"total":2,"female":1,"male":1,"female_pct":50.0,"gender_grade":{"Grade 3":{"f":1,"m":1}},"age_grade":{"Grade 3":{"36-45":2}},"age_totals":{"36-45":2}},"Myanmar":{"total":5,"female":3,"male":2,"female_pct":60.0,"gender_grade":{"Grade 3":{"f":1,"m":1},"Grade 4":{"f":1,"m":1},"Grade 5":{"f":1,"m":0}},"age_grade":{"Grade 3":{"46-60":2},"Grade 4":{"26-35":1,"46-60":1},"Grade 5":{"36-45":1}},"age_totals":{"26-35":1,"36-45":1,"46-60":3}},"Nepal":{"total":10,"female":3,"male":7,"female_pct":30.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":3},"Grade 4":{"f":1,"m":0},"Grade 5":{"f":0,"m":1},"Grade 8":{"f":0,"m":1},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"26-35":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":3,"46-60":1},"Grade 4":{"26-35":1},"Grade 5":{"36-45":1},"Grade 8":{"36-45":1},"Grade 9":{"46-60":1}},"age_totals":{"26-35":2,"36-45":5,"46-60":3}},"Philippines":{"total":6,"female":3,"male":3,"female_pct":50.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":0,"m":3},"Grade 3":{"f":2,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"36-45":1,"46-60":2},"Grade 3":{"36-45":1,"46-60":1}},"age_totals":{"36-45":3,"46-60":3}},"Roving":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Sri Lanka":{"total":4,"female":3,"male":1,"female_pct":75.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"46-60":1},"Grade 4":{"36-45":1},"Grade Head":{"36-45":1}},"age_totals":{"36-45":3,"46-60":1}},"United Kingdom":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"60+":1}},"age_totals":{"60+":1}}}},"eca":{"total":217,"female":57,"male":160,"female_pct":26.3,"gender_grade":{"Grade 1":{"f":2,"m":9},"Grade 10":{"f":4,"m":5},"Grade 2":{"f":1,"m":11},"Grade 3":{"f":9,"m":30},"Grade 4":{"f":19,"m":28},"Grade 5":{"f":7,"m":34},"Grade 6":{"f":5,"m":10},"Grade 7":{"f":5,"m":8},"Grade 8":{"f":1,"m":23},"Grade 9":{"f":3,"m":1},"Grade Exec":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":51,"36-45":115,"46-60":48,"60+":3},"countries":{"Burundi":{"total":16,"female":5,"male":11,"female_pct":31.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 10":{"f":0,"m":2},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":3,"m":3},"Grade 5":{"f":2,"m":0},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 10":{"26-35":1,"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":2},"Grade 4":{"26-35":2,"36-45":3,"46-60":1},"Grade 5":{"26-35":2},"Grade 8":{"26-35":2}},"age_totals":{"26-35":9,"36-45":4,"46-60":3}},"Central African Republic":{"total":36,"female":6,"male":30,"female_pct":16.7,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 10":{"f":0,"m":2},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":0,"m":3},"Grade 4":{"f":3,"m":5},"Grade 5":{"f":0,"m":9},"Grade 6":{"f":0,"m":3},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":2,"m":0}},"age_grade":{"Grade 1":{"36-45":1,"60+":1},"Grade 10":{"36-45":2},"Grade 2":{"46-60":1,"60+":1},"Grade 3":{"36-45":2,"46-60":1},"Grade 4":{"26-35":2,"36-45":6},"Grade 5":{"26-35":2,"36-45":6,"46-60":1},"Grade 6":{"36-45":2,"46-60":1},"Grade 7":{"26-35":1},"Grade 8":{"26-35":1,"36-45":3},"Grade 9":{"26-35":2}},"age_totals":{"26-35":8,"36-45":22,"46-60":4,"60+":2}},"Democratic Republic of Congo":{"total":34,"female":5,"male":29,"female_pct":14.7,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 10":{"f":1,"m":0},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":1,"m":7},"Grade 4":{"f":0,"m":3},"Grade 5":{"f":1,"m":5},"Grade 7":{"f":1,"m":7},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":0,"m":1}},"age_grade":{"Grade 1":{"26-35":1},"Grade 10":{"26-35":1},"Grade 2":{"46-60":1,"60+":1},"Grade 3":{"26-35":1,"36-45":3,"46-60":4},"Grade 4":{"36-45":1,"46-60":2},"Grade 5":{"26-35":1,"36-45":5},"Grade 7":{"26-35":2,"36-45":5,"46-60":1},"Grade 8":{"36-45":4},"Grade 9":{"36-45":1}},"age_totals":{"26-35":6,"36-45":19,"46-60":8,"60+":1}},"Ethiopia":{"total":37,"female":11,"male":26,"female_pct":29.7,"gender_grade":{"Grade 1":{"f":1,"m":2},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":2,"m":6},"Grade 4":{"f":1,"m":10},"Grade 5":{"f":1,"m":3},"Grade 6":{"f":4,"m":0},"Grade 7":{"f":2,"m":1},"Grade 8":{"f":0,"m":3}},"age_grade":{"Grade 1":{"46-60":3},"Grade 2":{"46-60":1},"Grade 3":{"36-45":5,"46-60":3},"Grade 4":{"26-35":2,"36-45":7,"46-60":2},"Grade 5":{"26-35":2,"36-45":2},"Grade 6":{"26-35":4},"Grade 7":{"26-35":2,"46-60":1},"Grade 8":{"36-45":1,"46-60":2}},"age_totals":{"26-35":10,"36-45":15,"46-60":12}},"Rwanda":{"total":30,"female":16,"male":14,"female_pct":53.3,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 2":{"f":1,"m":3},"Grade 3":{"f":3,"m":3},"Grade 4":{"f":11,"m":3},"Grade 8":{"f":0,"m":2},"Grade Exec":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":2},"Grade 2":{"36-45":1,"46-60":3},"Grade 3":{"26-35":1,"36-45":4,"46-60":1},"Grade 4":{"26-35":6,"36-45":5,"46-60":3},"Grade 8":{"36-45":1,"46-60":1},"Grade Exec":{"46-60":1},"Grade Head":{"36-45":1}},"age_totals":{"26-35":7,"36-45":12,"46-60":11}},"South Sudan":{"total":64,"female":14,"male":50,"female_pct":21.9,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 10":{"f":3,"m":1},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":3,"m":9},"Grade 4":{"f":1,"m":4},"Grade 5":{"f":3,"m":17},"Grade 6":{"f":1,"m":7},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":1,"m":8},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":2},"Grade 10":{"36-45":2,"46-60":2},"Grade 2":{"46-60":2},"Grade 3":{"26-35":1,"36-45":10,"46-60":1},"Grade 4":{"36-45":5},"Grade 5":{"26-35":4,"36-45":12,"46-60":4},"Grade 6":{"26-35":3,"36-45":5},"Grade 7":{"26-35":1},"Grade 8":{"26-35":2,"36-45":6,"46-60":1},"Grade 9":{"36-45":1}},"age_totals":{"26-35":11,"36-45":43,"46-60":10}}}},"ena":{"total":48,"female":17,"male":31,"female_pct":35.4,"gender_grade":{"Grade 1":{"f":2,"m":1},"Grade 2":{"f":3,"m":4},"Grade 3":{"f":4,"m":7},"Grade 4":{"f":0,"m":12},"Grade 5":{"f":8,"m":4},"Grade 8":{"f":0,"m":2},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":15,"36-45":19,"46-60":14},"countries":{"Iraq":{"total":7,"female":3,"male":4,"female_pct":42.9,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 3":{"f":1,"m":2},"Grade 4":{"f":0,"m":1},"Grade 5":{"f":1,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 3":{"36-45":2,"46-60":1},"Grade 4":{"26-35":1},"Grade 5":{"26-35":2}},"age_totals":{"26-35":3,"36-45":3,"46-60":1}},"Jordan":{"total":9,"female":6,"male":3,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":2,"m":0},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":1},"Grade 5":{"f":3,"m":1},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 2":{"26-35":1,"36-45":1},"Grade 3":{"26-35":1},"Grade 4":{"36-45":1},"Grade 5":{"26-35":1,"36-45":3},"Grade Head":{"46-60":1}},"age_totals":{"26-35":3,"36-45":5,"46-60":1}},"Lebanon":{"total":14,"female":4,"male":10,"female_pct":28.6,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":1,"m":2},"Grade 4":{"f":0,"m":5},"Grade 5":{"f":2,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"36-45":1,"46-60":1},"Grade 3":{"26-35":2,"46-60":1},"Grade 4":{"26-35":3,"36-45":2},"Grade 5":{"26-35":2,"36-45":1}},"age_totals":{"26-35":7,"36-45":5,"46-60":2}},"Pakistan":{"total":15,"female":2,"male":13,"female_pct":13.3,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":3},"Grade 4":{"f":0,"m":5},"Grade 5":{"f":2,"m":1},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":1,"36-45":1,"46-60":1},"Grade 4":{"46-60":5},"Grade 5":{"36-45":3},"Grade 8":{"36-45":1,"46-60":1}},"age_totals":{"26-35":1,"36-45":6,"46-60":8}},"Philippines":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Syria":{"total":2,"female":1,"male":1,"female_pct":50.0,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"26-35":1}},"age_totals":{"26-35":1,"46-60":1}}}},"lac":{"total":13,"female":8,"male":5,"female_pct":61.5,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":2,"m":2},"Grade 3":{"f":2,"m":0},"Grade 4":{"f":2,"m":1},"Grade 5":{"f":1,"m":0},"Grade 6":{"f":0,"m":2}},"age_totals":{"26-35":2,"36-45":3,"46-60":7,"60+":1},"countries":{"Brazil":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 4":{"f":1,"m":1}},"age_grade":{"Grade 2":{"46-60":1},"Grade 4":{"36-45":1,"46-60":1}},"age_totals":{"36-45":1,"46-60":2}},"Colombia":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 4":{"f":1,"m":0},"Grade 5":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 4":{"46-60":1},"Grade 5":{"46-60":1}},"age_totals":{"46-60":3}},"Ecuador":{"total":2,"female":2,"male":0,"female_pct":100.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1}},"age_totals":{"36-45":1,"46-60":1}},"Guatemala":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 6":{"f":0,"m":1}},"age_grade":{"Grade 6":{"26-35":1}},"age_totals":{"26-35":1}},"Honduras":{"total":3,"female":1,"male":2,"female_pct":33.3,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 6":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"26-35":1},"Grade 6":{"60+":1}},"age_totals":{"26-35":1,"36-45":1,"60+":1}},"Peru":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 3":{"46-60":1}},"age_totals":{"46-60":1}}}},"sea":{"total":66,"female":32,"male":34,"female_pct":48.5,"gender_grade":{"Grade 1":{"f":2,"m":3},"Grade 2":{"f":6,"m":9},"Grade 3":{"f":14,"m":7},"Grade 4":{"f":5,"m":14},"Grade 5":{"f":3,"m":1},"Grade 6":{"f":1,"m":0},"Grade Head":{"f":1,"m":0}},"age_totals":{"19-25":1,"26-35":15,"36-45":22,"46-60":24,"60+":4},"countries":{"Kenya":{"total":27,"female":14,"male":13,"female_pct":51.9,"gender_grade":{"Grade 1":{"f":1,"m":1},"Grade 2":{"f":2,"m":5},"Grade 3":{"f":7,"m":2},"Grade 4":{"f":1,"m":4},"Grade 5":{"f":3,"m":1}},"age_grade":{"Grade 1":{"36-45":1,"46-60":1},"Grade 2":{"26-35":1,"36-45":3,"46-60":3},"Grade 3":{"36-45":4,"46-60":4,"60+":1},"Grade 4":{"26-35":3,"36-45":1,"46-60":1},"Grade 5":{"26-35":1,"36-45":3}},"age_totals":{"26-35":5,"36-45":12,"46-60":9,"60+":1}},"Malawi":{"total":9,"female":2,"male":7,"female_pct":22.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":1},"Grade 4":{"f":1,"m":4}},"age_grade":{"Grade 1":{"60+":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"19-25":1,"26-35":3,"36-45":1}},"age_totals":{"19-25":1,"26-35":3,"36-45":2,"46-60":2,"60+":1}},"Mozambique":{"total":7,"female":2,"male":5,"female_pct":28.6,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":2,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 3":{"26-35":1,"46-60":1},"Grade 4":{"26-35":2,"36-45":1,"60+":1}},"age_totals":{"26-35":3,"36-45":1,"46-60":2,"60+":1}},"Rwanda":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 1":{"f":1,"m":0}},"age_grade":{"Grade 1":{"46-60":1}},"age_totals":{"46-60":1}},"South Africa":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":2,"m":1}},"age_grade":{"Grade 2":{"46-60":3}},"age_totals":{"46-60":3}},"Tanzania":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1}},"age_totals":{"36-45":1}},"Uganda":{"total":3,"female":1,"male":2,"female_pct":33.3,"gender_grade":{"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":2}},"age_grade":{"Grade 3":{"46-60":1},"Grade 4":{"26-35":1,"46-60":1}},"age_totals":{"26-35":1,"46-60":2}},"Zambia":{"total":6,"female":4,"male":2,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":2,"m":0},"Grade 4":{"f":0,"m":2},"Grade Head":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"36-45":2},"Grade Head":{"60+":1}},"age_totals":{"36-45":3,"46-60":2,"60+":1}},"Zimbabwe":{"total":9,"female":6,"male":3,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":1},"Grade 3":{"f":3,"m":2},"Grade 4":{"f":1,"m":0},"Grade 6":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":2},"Grade 3":{"26-35":1,"36-45":3,"46-60":1},"Grade 4":{"26-35":1},"Grade 6":{"26-35":1}},"age_totals":{"26-35":3,"36-45":3,"46-60":3}}}},"uk":{"total":56,"female":34,"male":22,"female_pct":60.7,"gender_grade":{"Grade 1":{"f":4,"m":8},"Grade 2":{"f":11,"m":6},"Grade 3":{"f":8,"m":4},"Grade 4":{"f":7,"m":1},"Grade 5":{"f":2,"m":3},"Grade Head":{"f":2,"m":0}},"age_totals":{"19-25":1,"26-35":15,"36-45":16,"46-60":17,"60+":7},"countries":{"United Kingdom":{"total":56,"female":34,"male":22,"female_pct":60.7,"gender_grade":{"Grade 1":{"f":4,"m":8},"Grade 2":{"f":11,"m":6},"Grade 3":{"f":8,"m":4},"Grade 4":{"f":7,"m":1},"Grade 5":{"f":2,"m":3},"Grade Head":{"f":2,"m":0}},"age_grade":{"Grade 1":{"26-35":1,"36-45":3,"46-60":6,"60+":2},"Grade 2":{"26-35":6,"36-45":3,"46-60":5,"60+":3},"Grade 3":{"26-35":4,"36-45":6,"46-60":1,"60+":1},"Grade 4":{"26-35":2,"36-45":2,"46-60":3,"60+":1},"Grade 5":{"19-25":1,"26-35":2,"36-45":2},"Grade Head":{"46-60":2}},"age_totals":{"19-25":1,"26-35":15,"36-45":16,"46-60":17,"60+":7}}}},"wa":{"total":76,"female":24,"male":52,"female_pct":31.6,"gender_grade":{"Grade 1":{"f":2,"m":3},"Grade 10":{"f":0,"m":1},"Grade 2":{"f":2,"m":4},"Grade 3":{"f":6,"m":16},"Grade 4":{"f":4,"m":17},"Grade 5":{"f":5,"m":0},"Grade 6":{"f":1,"m":0},"Grade 7":{"f":2,"m":2},"Grade 8":{"f":1,"m":8},"Grade 9":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":16,"36-45":40,"46-60":18,"60+":2},"countries":{"Burkina Faso":{"total":12,"female":2,"male":10,"female_pct":16.7,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":5},"Grade 4":{"f":1,"m":2},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":1,"36-45":3,"46-60":2},"Grade 4":{"36-45":2,"46-60":1},"Grade 8":{"46-60":1}},"age_totals":{"26-35":1,"36-45":6,"46-60":5}},"Chad":{"total":9,"female":1,"male":8,"female_pct":11.1,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":0,"m":2},"Grade 8":{"f":1,"m":2}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"60+":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"26-35":1,"36-45":1},"Grade 8":{"26-35":1,"36-45":2}},"age_totals":{"26-35":2,"36-45":5,"46-60":1,"60+":1}},"Ghana":{"total":2,"female":2,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"36-45":1}},"age_totals":{"36-45":2}},"Ivory Coast":{"total":4,"female":3,"male":1,"female_pct":75.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":1,"m":0},"Grade 6":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 3":{"36-45":1},"Grade 4":{"36-45":1},"Grade 6":{"26-35":1}},"age_totals":{"26-35":1,"36-45":3}},"Liberia":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Mali":{"total":8,"female":1,"male":7,"female_pct":12.5,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":1},"Grade 4":{"f":0,"m":4},"Grade 5":{"f":1,"m":0},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"36-45":1},"Grade 4":{"36-45":3,"46-60":1},"Grade 5":{"36-45":1},"Grade 8":{"36-45":1}},"age_totals":{"36-45":6,"46-60":2}},"Nigeria":{"total":33,"female":12,"male":21,"female_pct":36.4,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 10":{"f":0,"m":1},"Grade 2":{"f":1,"m":0},"Grade 3":{"f":3,"m":6},"Grade 4":{"f":1,"m":8},"Grade 5":{"f":3,"m":0},"Grade 7":{"f":2,"m":2},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"46-60":1},"Grade 10":{"26-35":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":7,"46-60":1,"60+":1},"Grade 4":{"26-35":1,"36-45":6,"46-60":2},"Grade 5":{"26-35":3},"Grade 7":{"26-35":2,"36-45":2},"Grade 8":{"26-35":1,"36-45":2,"46-60":1},"Grade 9":{"26-35":1}},"age_totals":{"26-35":9,"36-45":17,"46-60":6,"60+":1}},"Sierra Leone":{"total":2,"female":0,"male":2,"female_pct":0.0,"gender_grade":{"Grade 3":{"f":0,"m":2}},"age_grade":{"Grade 3":{"26-35":1,"46-60":1}},"age_totals":{"26-35":1,"46-60":1}},"Togo":{"total":5,"female":3,"male":2,"female_pct":60.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 4":{"f":1,"m":1},"Grade 5":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":1},"Grade 4":{"26-35":1,"36-45":1},"Grade 5":{"26-35":1},"Grade Head":{"46-60":1}},"age_totals":{"26-35":2,"36-45":1,"46-60":2}}}}};
+
+const CAT_COL={Senior:'#1088A8',Mid:'#F8D000',Junior:'#E05A1E'};
+const TORD=['< 1 yr','1–3 yrs','3–5 yrs','5–10 yrs','10+ yrs'];
+const TCOL=['#c0392b','#e67e22','#d9b800','#1a8a5a','#1088A8'];
+const GRADE_ORDER=['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10'];
+
+let currentRegion=null, currentCountry=null, charts={};
+
+function pct(v,t){return t?Math.round(v/t*1000)/10:0}
+function vb(val,orgVal,higherGood=true){
+  const d=val-orgVal;
+  if(Math.abs(d)<1.5) return `<span class="vbadge vne">≈ avg</span>`;
+  const better=higherGood?d>0:d<0;
+  return `<span class="vbadge ${better?'vup':'vdn'}">${d>0?'+':''}${d.toFixed(0)}pp</span>`;
+}
+function getCat(g){return ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(g)?'Senior':['Grade 3','Grade 4','Grade 5'].includes(g)?'Mid':'Junior'}
+
+function killCharts(){Object.values(charts).forEach(c=>c.destroy());charts={};window._currentDemoData=null;}
+
+// ── COUNTRY LIST ──────────────────────────────────────────────────
+function buildCountryList(rkey){
+  const r=DATA[rkey];
+  const countries=Object.entries(r.countries).sort((a,b)=>b[1].n-a[1].n);
+  let html=`<div class="cl-header">📍 ${r.label} · ${r.n} staff</div>`;
+  // Region summary row
+  html+=`<div class="cl-region-row active" id="cl-region" onclick="showRegion('${rkey}')">
+    <div style="flex:1">
+      <div class="cl-name" style="font-size:.78rem;font-weight:800;color:var(--ink)">${r.label}</div>
+      <div style="font-size:.63rem;color:var(--sl)">All ${r.n} staff · ${r.sr_pct}% senior</div>
+    </div>
+    <span class="cl-sr" style="background:${r.sr_pct>=28?'#e8f8f0':'#fdeee6'};color:${r.sr_pct>=28?'var(--ok)':'var(--dg)'}">${r.sr_pct}%</span>
+  </div>`;
+  // Countries
+  countries.forEach(([cname,cd])=>{
+    const srCol=cd.sr_pct>=28?'#e8f8f0':'#fdeee6';
+    const srTxt=cd.sr_pct>=28?'var(--ok)':'var(--dg)';
+    html+=`<div class="cl-country-row" id="cl-${CSS.escape(cname)}" onclick="showCountry('${rkey}','${cname.replace(/'/g,"\\'")}')">
+      <div style="flex:1">
+        <div class="cl-name">${cname}</div>
+        <div style="font-size:.62rem;color:var(--sl)">${cd.n} staff · FT ${cd.ft_pct}%</div>
+      </div>
+      <span class="cl-sr" style="background:${srCol};color:${srTxt}">${cd.sr_pct}%</span>
+    </div>`;
+  });
+  document.getElementById('country-list').innerHTML=html;
+}
+
+function setActive(id){
+  document.querySelectorAll('.cl-region-row,.cl-country-row').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+// ── SHOW REGION ───────────────────────────────────────────────────
+function showRegion(rkey){
+  currentCountry=null;
+  setActive('cl-region');
+  renderProfile(DATA[rkey],DATA[rkey].label,'region',rkey);
+}
+
+// ── SHOW COUNTRY ──────────────────────────────────────────────────
+function showCountry(rkey,cname){
+  currentCountry=cname;
+  setActive('cl-'+CSS.escape(cname));
+  const cd=DATA[rkey].countries[cname];
+  renderProfile(cd,cname,'country',rkey,cname);
+}
+
+// ── RENDER PROFILE ────────────────────────────────────────────────
+function renderProfile(d,name,type,rkey,cname){
+  killCharts();
+  const r=DATA[rkey];
+  const isSmall=d.n<5;
+  const netCol=d.net_flow>=0?'var(--ok)':'var(--dg)';
+  const gradePairs=Object.entries(d.grade_cts||{}).filter(([g,n])=>n>0);
+  const gradeEntries=GRADE_ORDER.filter(g=>d.grade_cts&&d.grade_cts[g]>0).map(g=>({g,n:d.grade_cts[g]}));
+  const maxGrade=gradeEntries.length?Math.max(...gradeEntries.map(e=>e.n)):1;
+  const tenureEntries=TORD.map((b,i)=>({b,n:d.tenure&&d.tenure[b]?d.tenure[b]:0,c:TCOL[i]}));
+  const hireGrades=Object.entries(d.hire_by_grade||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+  const cEntries=Object.entries(r.countries).sort((a,b)=>b[1].n-a[1].n);
+
+  let html=`<div class="fade-in">`;
+
+  // HEADER
+  html+=`<div class="profile-hdr">
+    ${type==='country'?`<div class="profile-breadcrumb">📍 ${r.label} › ${name}</div>`:`<div class="profile-breadcrumb">🌍 Region Overview</div>`}
+    <div class="profile-name">${name}</div>
+    <div class="profile-sub">${d.n} staff ${type==='region'?`· ${Object.keys(r.countries).length} countries`:''}
+      ${type==='region'?`· ${d.sr_pct}% senior · ${d.ft_pct}% fixed-term`:
+        `· <span style="color:rgba(255,255,255,.6)">${r.label}</span>`}
+    </div>
+  </div>`;
+
+  if(isSmall) html+=`<div class="small-n-note">⚠ Small sample (n=${d.n}) — percentages are sensitive to individual moves. Interpret with caution.</div>`;
+
+  // KPIs
+  html+=`<div class="kpi-grid">
+    <div class="kpi" style="--accent:${r.color}"><div class="kpi-v">${d.n}</div><div class="kpi-l">Staff</div><div class="kpi-s">${type==='region'?Object.keys(r.countries).length+' countries':r.label}</div></div>
+    <div class="kpi" style="--accent:var(--sr)"><div class="kpi-v">${d.sr_pct}<sup>%</sup></div><div class="kpi-l">Senior</div><div class="kpi-s">${d.senior_n} staff ${vb(d.sr_pct,ORG.sr_pct)}</div></div>
+    <div class="kpi" style="--accent:var(--pm)"><div class="kpi-v">${d.perm_pct}<sup>%</sup></div><div class="kpi-l">Permanent</div><div class="kpi-s">${d.perm_n} staff ${vb(d.perm_pct,ORG.perm_pct)}</div></div>
+    <div class="kpi" style="--accent:var(--dg)"><div class="kpi-v">${d.exit_rate}<sup>%</sup></div><div class="kpi-l">Exit Rate</div><div class="kpi-s">${d.exits_n} exits ${vb(d.exit_rate,ORG.exit_rate,false)}</div></div>
+    <div class="kpi" style="--accent:var(--teal)"><div class="kpi-v">${d.hire_rate_12m}<sup>%</sup></div><div class="kpi-l">Hire Rate 12m</div><div class="kpi-s">${d.hire_12m} hires · CSD-based</div></div>
+    <div class="kpi" style="--accent:${d.net_flow>=0?'var(--pm)':'var(--dg)'}"><div class="kpi-v" style="color:${netCol}">${d.net_flow>=0?'+':''}${d.net_flow}</div><div class="kpi-l">Net Flow</div><div class="kpi-s">Hires minus exits</div></div>
+  </div>`;
+
+  // GRADE + CONTRACT + TENURE
+  html+=`<div class="g3">
+    <div class="card">
+      <div class="ct">Grade Distribution</div><div class="cs">Senior · Mid · Junior</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="grade-donut"></canvas></div>
+      <div style="margin-top:.5rem">
+        ${[['Senior',d.senior_n,'#1088A8'],['Mid',d.mid_n,'#F8D000'],['Junior',d.junior_n,'#E05A1E']].map(([l,n,c])=>`
+        <div style="display:flex;align-items:center;gap:.4rem;padding:.12rem 0">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+          <span style="flex:1;font-size:.69rem;font-weight:600;color:var(--ink2)">${l}</span>
+          <span style="font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;color:var(--ink)">${n}</span>
+          <span style="font-size:.65rem;color:var(--sl)">${pct(n,d.n)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Contract Type</div><div class="cs">Permanent vs Fixed Term</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="contract-donut"></canvas></div>
+      <div style="margin-top:.5rem">
+        ${[[`Permanent`,d.perm_n,'#1a8a5a'],[`Fixed Term`,d.ft_n,'#c0392b'],[`Other`,d.n-d.perm_n-d.ft_n,'#8ab5c2']].filter(x=>x[1]>0).map(([l,n,c])=>`
+        <div style="display:flex;align-items:center;gap:.4rem;padding:.12rem 0">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+          <span style="flex:1;font-size:.69rem;font-weight:600;color:var(--ink2)">${l}</span>
+          <span style="font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;color:var(--ink)">${n}</span>
+          <span style="font-size:.65rem;color:var(--sl)">${pct(n,d.n)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Tenure Distribution</div><div class="cs">Length of service bands</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="tenure-bar"></canvas></div>
+      <div style="margin-top:.4rem;display:flex;flex-wrap:wrap;gap:.3rem">
+        ${TORD.map((b,i)=>`<span style="font-size:.62rem;color:var(--sl)"><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${TCOL[i]};margin-right:2px;vertical-align:middle"></span>${b}: ${d.tenure&&d.tenure[b]||0}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // GRADE PYRAMID
+  html+=`<div class="g21">
+    <div class="card">
+      <div class="ct">Full Grade Pyramid</div><div class="cs">All grades in ${name} — lower = more senior</div>
+      <div style="padding:.2rem 0">
+        ${gradeEntries.map(e=>{
+          const cat=getCat(e.g);
+          const col=CAT_COL[cat]||'#8ab5c2';
+          const w=Math.max(4,(e.n/maxGrade*75));
+          return `<div class="pyr-row">
+            <div class="pyr-label">${e.g}</div>
+            <div style="flex:1;display:flex;align-items:center">
+              <div class="pyr-bar" style="width:${w}%;background:${col}">
+                ${w>=10?`<span class="pyr-n">${e.n}</span>`:''}
+              </div>
+              ${w<10?`<span class="pyr-ext" style="color:${col}">${e.n}</span>`:''}
+            </div>
+            <div class="pyr-pct">${e.n} · ${pct(e.n,d.n)}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.9rem">
+      <!-- NET FLOW -->
+      <div class="card">
+        <div class="ct">Workforce Flow</div><div class="cs">Hires vs exits · CSD-based</div>
+        <div class="flow-row">
+          <div class="flow-box"><div class="flow-v" style="color:var(--teal)">${d.hire_12m}</div><div class="flow-l">Hires 12m</div></div>
+          <div class="flow-box"><div class="flow-v" style="color:var(--dg)">${d.exits_n}</div><div class="flow-l">Exits</div></div>
+          <div class="flow-box" style="border-color:${netCol}"><div class="flow-v" style="color:${netCol}">${d.net_flow>=0?'+':''}${d.net_flow}</div><div class="flow-l">Net Flow</div></div>
+        </div>
+        ${hireGrades.length?`
+        <div class="slb">Entry grades (12m hires)</div>
+        ${hireGrades.map(([g,n])=>{
+          const maxH=Math.max(...hireGrades.map(x=>x[1]));
+          return `<div class="prow"><div class="plabel" style="width:90px">${g}</div>
+            <div class="ptrack"><div class="pfill" style="width:${(n/maxH*100).toFixed(0)}%;background:var(--teal)"></div></div>
+            <div class="pval">${n}</div></div>`;
+        }).join('')}`:'<div style="font-size:.72rem;color:var(--mi);text-align:center;padding:.75rem 0">No hires in 12-month window</div>'}
+      </div>
+      <!-- MOBILITY -->
+      <div class="card">
+        <div class="ct">Mobility</div><div class="cs">Grade changes in mobility data</div>
+        <div style="display:flex;gap:.6rem">
+          <div class="flow-box" style="border-color:var(--ok)"><div class="flow-v" style="color:var(--ok)">${d.mob_up}</div><div class="flow-l">Upward</div></div>
+          <div class="flow-box" style="border-color:var(--dg)"><div class="flow-v" style="color:var(--dg)">${d.mob_dn}</div><div class="flow-l">Downward</div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // COUNTRY COMPARISON TABLE (region view only)
+  if(type==='region' && cEntries.length>1){
+    html+=`<div class="card" style="margin-bottom:.9rem">
+      <div class="ct">Country Comparison</div>
+      <div class="cs">All countries in ${name} · click a row to drill down</div>
+      <table class="dtable">
+        <thead><tr>
+          <th>Country</th><th class="n">N</th><th class="n">Senior %</th><th class="n">Perm %</th><th class="n">FT %</th>
+          <th class="n">Exit Rate</th><th class="n">Hire Rate</th><th class="n">Net Flow</th><th class="n">Mob ↑</th>
+        </tr></thead>
+        <tbody>
+          ${cEntries.map(([cn,cd])=>{
+            const srC=cd.sr_pct>=28?'color:var(--ok)':cd.sr_pct<10?'color:var(--dg)':'';
+            const ftC=cd.ft_pct>=90?'color:var(--dg);font-weight:800':cd.ft_pct>=70?'color:var(--wn)':'';
+            const exC=cd.exit_rate>=40?'color:var(--dg);font-weight:800':cd.exit_rate>=20?'color:var(--wn)':'';
+            const nfC=cd.net_flow>=0?'color:var(--ok)':'color:var(--dg)';
+            return `<tr onclick="showCountry('${rkey}','${cn.replace(/'/g,"\\'")}')" style="cursor:pointer">
+              <td style="font-weight:600">${cn}</td>
+              <td class="n">${cd.n}</td>
+              <td class="n" style="${srC}">${cd.sr_pct}%</td>
+              <td class="n" style="${cd.perm_pct<10?'color:var(--dg)':''}">${cd.perm_pct}%</td>
+              <td class="n" style="${ftC}">${cd.ft_pct}%</td>
+              <td class="n" style="${exC}">${cd.exit_rate}%</td>
+              <td class="n">${cd.hire_rate_12m}%</td>
+              <td class="n" style="${nfC}">${cd.net_flow>=0?'+':''}${cd.net_flow}</td>
+              <td class="n" style="color:var(--ok)">${cd.mob_up}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+
+  // Inject demographics section
+  // For region view: aggregate age_grade from all countries (region-level object only has age_totals)
+  let demoData = type==='country'
+    ? (DEMO[rkey]&&DEMO[rkey].countries&&DEMO[rkey].countries[name]||null)
+    : (DEMO[rkey]||null);
+  if(demoData && !demoData.age_grade && demoData.countries){
+    const agg={};
+    Object.values(demoData.countries).forEach(cd=>{
+      Object.entries(cd.age_grade||{}).forEach(([grade,ages])=>{
+        if(!agg[grade]) agg[grade]={};
+        Object.entries(ages).forEach(([age,n])=>{ agg[grade][age]=(agg[grade][age]||0)+n; });
+      });
+    });
+    demoData = Object.assign({}, demoData, {age_grade: agg});
+  }
+  const demoN = demoData ? demoData.total : 0;
+
+  if(demoData){
+    html+=`
+    <div class="card" style="margin-bottom:.9rem">
+      <div class="ct">Demographics — Gender &amp; Age by Grade</div>
+      <div class="cs">Report 69 (30 Dec 2025) · ${type==='country'?name:name+' region'} · ${demoN} staff with demographic data</div>
+      <div class="demo-tabs">
+        <div class="demo-tab active" onclick="switchDemoTab(this,'dp-gg')">Gender × Grade</div>
+        <div class="demo-tab" onclick="switchDemoTab(this,'dp-ag')">Age × Grade</div>
+        <div class="demo-tab" onclick="switchDemoTab(this,'dp-ov')">Overview</div>
+      </div>
+      <div class="demo-panel active" id="dp-gg">
+        <div class="demo-note">Female (pink) and Male (teal) count within each grade · labels show count</div>
+        <div id="demo-gg-bars"></div>
+      </div>
+      <div class="demo-panel" id="dp-ag">
+        <div class="demo-note">Age band distribution within each grade — stacked bars</div>
+        <div class="chart-wrap" style="height:${Object.keys(demoData.age_grade||{}).length*32+40}px"><canvas id="demo-ag-chart"></canvas></div>
+      </div>
+      <div class="demo-panel" id="dp-ov">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem">
+          <div><div class="slb">Gender split</div><div id="demo-ov-gender"></div></div>
+          <div><div class="slb">Age distribution</div><div id="demo-ov-age"></div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  document.getElementById('detail-panel').innerHTML=html;
+
+  // Store demo data for panel builders
+  window._currentDemoData = demoData || null;
+  // Auto-build the default Gender×Grade panel if data available
+  if(demoData){ setTimeout(()=>buildGenderGrade(demoData),0); }
+
+  // ── CHARTS ────────────────────────────────────────────────────
+  Chart.defaults.font.family="'Nunito Sans',sans-serif";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color='#4a7a8a';
+  Chart.defaults.plugins.legend.display=false;
+  Chart.defaults.plugins.tooltip.backgroundColor='#0a6880';
+  Chart.defaults.plugins.tooltip.cornerRadius=6;
+  Chart.defaults.plugins.tooltip.padding=8;
+
+  const dlBase={color:'#fff',textAlign:'center',font:{weight:'bold',size:11,family:"'Nunito',sans-serif"},formatter:(v,ctx)=>v>0?`${v}\n${pct(v,d.n)}%`:'',display:ctx=>ctx.dataset.data[ctx.dataIndex]>0};
+
+  // Grade donut
+  charts['grade-donut']=new Chart(document.getElementById('grade-donut'),{
+    type:'doughnut',
+    data:{labels:['Senior','Mid','Junior'],datasets:[{data:[d.senior_n,d.mid_n,d.junior_n],backgroundColor:['#1088A8','#F8D000','#E05A1E'],borderWidth:3,borderColor:'#fff'}]},
+    options:{cutout:'65%',animation:{duration:500},plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${pct(c.raw,d.n)}%)`}},datalabels:dlBase}}
+  });
+
+  // Contract donut
+  const cArr=[{l:'Permanent',n:d.perm_n,c:'#1a8a5a'},{l:'Fixed Term',n:d.ft_n,c:'#c0392b'},{l:'Other',n:d.n-d.perm_n-d.ft_n,c:'#8ab5c2'}].filter(x=>x.n>0);
+  charts['contract-donut']=new Chart(document.getElementById('contract-donut'),{
+    type:'doughnut',
+    data:{labels:cArr.map(x=>x.l),datasets:[{data:cArr.map(x=>x.n),backgroundColor:cArr.map(x=>x.c),borderWidth:3,borderColor:'#fff'}]},
+    options:{cutout:'65%',animation:{duration:500},plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${pct(c.raw,d.n)}%)`}},datalabels:dlBase}}
+  });
+
+  // Tenure bar
+  charts['tenure-bar']=new Chart(document.getElementById('tenure-bar'),{
+    type:'bar',
+    data:{labels:TORD,datasets:[{data:tenureEntries.map(e=>e.n),backgroundColor:TCOL,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:16}},
+      scales:{y:{display:false,grid:{display:false}},x:{grid:{display:false},border:{display:false},ticks:{font:{size:9}}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.raw} staff (${pct(c.raw,d.n)}%)`}},
+        datalabels:{anchor:'end',align:'top',offset:-2,color:'var(--ink2)',font:{weight:'bold',size:10},formatter:v=>v>0?v:''}}
+    }
+  });
+}
+
+
+// ── DEMO TAB TOGGLE ───────────────────────────────────────────────
+function switchDemoTab(btn, panelId){
+  btn.closest('.demo-tabs').querySelectorAll('.demo-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const card = btn.closest('.card');
+  card.querySelectorAll('.demo-panel').forEach(p=>p.classList.remove('active'));
+  const target = card.querySelector('#'+panelId);
+  if(target){ target.classList.add('active'); buildDemoPanel(panelId); }
+}
+
+// ── DEMO PANEL BUILDERS ───────────────────────────────────────────
+let demoDataCache = null;
+const AGE_BANDS  = ['19-25','26-35','36-45','46-60','60+'];
+const AGE_COLORS = ['#c0392b','#e67e22','#1088A8','#27ae60','#8e44ad'];
+const GRADE_ORDER_D = ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10'];
+const F_COL = '#E91E8C';
+const M_COL = '#1088A8';
+
+function getDemoData(){
+  // Re-read from the current rendered profile's demoData variable
+  // We store it on window when rendering
+  return window._currentDemoData || null;
+}
+
+function buildDemoPanel(panelId){
+  const d = window._currentDemoData;
+  if(!d) return;
+
+  if(panelId==='dp-gg') buildGenderGrade(d);
+  if(panelId==='dp-ag') buildAgeGrade(d);
+  if(panelId==='dp-ov') buildDemoOverview(d);
+}
+
+function buildGenderGrade(d){
+  const el = document.getElementById('demo-gg-bars');
+  if(!el || !d.gender_grade) return;
+  const grades = GRADE_ORDER_D.filter(g => d.gender_grade[g]);
+  const maxN = Math.max(...grades.map(g=>(d.gender_grade[g].f||0)+(d.gender_grade[g].m||0)));
+  el.innerHTML = grades.map(g => {
+    const gd = d.gender_grade[g];
+    const f = gd.f||0, m = gd.m||0, tot = f+m;
+    const fp = tot ? (f/tot*100).toFixed(1) : 0;
+    const mp = tot ? (m/tot*100).toFixed(1) : 0;
+    const barW = (tot/maxN*100).toFixed(1);
+    const isSenior = ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(g);
+    return `<div style="display:grid;grid-template-columns:80px 1fr 52px;align-items:center;gap:.5rem;padding:.22rem 0">
+      <div style="font-size:.7rem;font-weight:${isSenior?'700':'500'};color:${isSenior?'var(--teal-dark)':'var(--ink2)'};text-align:right">${g}</div>
+      <div style="height:20px;border-radius:4px;overflow:hidden;display:flex;background:var(--fog)" title="${g}: F=${f}, M=${m}">
+        <div style="width:${barW}%;display:flex;overflow:hidden;border-radius:4px;height:100%">
+          ${f>0?`<div style="width:${fp}%;background:${F_COL};display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff">${fp>=10?f:''}</div>`:''}
+          ${m>0?`<div style="width:${mp}%;background:${M_COL};display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff">${mp>=10?m:''}</div>`:''}
+        </div>
+      </div>
+      <div style="font-size:.67rem;color:var(--slate);font-weight:700;text-align:right">${tot}</div>
+    </div>`;
+  }).join('') +
+  `<div style="display:flex;gap:1rem;margin-top:.4rem;font-size:.66rem;color:var(--slate)">
+    <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${F_COL};margin-right:3px;vertical-align:middle"></span>Female</span>
+    <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${M_COL};margin-right:3px;vertical-align:middle"></span>Male</span>
+  </div>`;
+}
+
+function buildAgeGrade(d){
+  const canvasEl = document.getElementById('demo-ag-chart');
+  if(!canvasEl || !d.age_grade) return;
+  if(charts['demo-ag']){ charts['demo-ag'].destroy(); delete charts['demo-ag']; }
+
+  const grades = GRADE_ORDER_D.filter(g => d.age_grade[g]);
+  const datasets = AGE_BANDS.map((age,i) => ({
+    label: age,
+    data: grades.map(g => (d.age_grade[g]&&d.age_grade[g][age]) || 0),
+    backgroundColor: AGE_COLORS[i],
+    borderWidth: 0,
+    borderRadius: 2,
+  })).filter(ds => ds.data.some(v=>v>0));
+
+  charts['demo-ag'] = new Chart(canvasEl, {
+    type: 'bar',
+    data: { labels: grades, datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked:true, grid:{color:'rgba(16,136,168,.07)'}, border:{display:false},
+             ticks:{stepSize:1, font:{size:9}} },
+        y: { stacked:true, grid:{display:false}, border:{display:false},
+             ticks:{font:{size:9}, color: ctx => {
+               const lbl = grades[ctx.index];
+               return ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(lbl) ? '#0a6880' : '#4a7a8a';
+             }}}
+      },
+      plugins: {
+        legend: { display:true, position:'bottom',
+          labels:{font:{size:9,family:"'Nunito Sans',sans-serif"}, boxWidth:10, padding:8} },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw}` } },
+        datalabels: {
+          color:'#fff', font:{weight:'bold',size:9},
+          formatter: v => v>0?v:'',
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0
+        }
+      },
+      layout: { padding:{top:4,right:8} }
+    }
+  });
+}
+
+function buildDemoOverview(d){
+  // Gender overview
+  const govEl = document.getElementById('demo-ov-gender');
+  if(govEl){
+    const tot = (d.female||0)+(d.male||0);
+    const fp = tot ? (d.female/tot*100).toFixed(1) : 0;
+    const mp = tot ? (d.male/tot*100).toFixed(1) : 0;
+    govEl.innerHTML = `
+    <div style="height:22px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:.5rem">
+      <div style="width:${fp}%;background:${F_COL};display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;color:#fff">${fp}%</div>
+      <div style="width:${mp}%;background:${M_COL};display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;color:#fff">${mp}%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.69rem;color:var(--slate)">
+      <span style="color:${F_COL};font-weight:700">Female: ${d.female||0} (${fp}%)</span>
+      <span style="color:${M_COL};font-weight:700">Male: ${d.male||0} (${mp}%)</span>
+    </div>`;
+  }
+  // Age overview
+  const aovEl = document.getElementById('demo-ov-age');
+  if(aovEl && d.age_totals){
+    const totAge = Object.values(d.age_totals).reduce((a,b)=>a+b,0);
+    const maxAge = Math.max(...Object.values(d.age_totals));
+    aovEl.innerHTML = AGE_BANDS.filter(b=>d.age_totals[b]).map((b,i)=>{
+      const n = d.age_totals[b]||0;
+      const w = (n/maxAge*100).toFixed(0);
+      const pct = totAge ? (n/totAge*100).toFixed(0) : 0;
+      return `<div style="display:grid;grid-template-columns:55px 1fr 50px;align-items:center;gap:.4rem;padding:.2rem 0">
+        <div style="font-size:.68rem;font-weight:600;color:var(--ink2)">${b}</div>
+        <div style="height:14px;background:var(--fog);border-radius:3px;overflow:hidden">
+          <div style="width:${w}%;height:100%;background:${AGE_COLORS[i]};border-radius:3px"></div>
+        </div>
+        <div style="font-size:.67rem;font-weight:700;color:var(--slate);text-align:right">${n} (${pct}%)</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+
+// ── SELECT REGION ─────────────────────────────────────────────────
+function selectRegion(rkey,btn){
+  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentRegion=rkey;
+  currentCountry=null;
+  buildCountryList(rkey);
+  showRegion(rkey);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+selectRegion('eca',document.querySelector('.rbtn.active'));
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tearfund — Regional Workforce Profiles</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+:root{
+  --teal:#1088A8;--td:#0a6880;--tm:#1499bc;--tl:#d0edf4;--tp:#eaf6fa;
+  --y:#F8D000;--yd:#d9b800;--yl:#fff7cc;
+  --wh:#fff;--ink:#0d2b35;--ink2:#1e4a5a;--sl:#4a7a8a;--mi:#8ab5c2;--cl:#cce5ed;--fog:#f0f8fb;
+  --sr:#1088A8;--mid:#F8D000;--jr:#E05A1E;
+  --pm:#1a8a5a;--ft:#c0392b;--ok:#1a8a5a;--wn:#e67e22;--dg:#c0392b;
+  --r:.4rem;--r2:.8rem;
+  --sh:0 2px 10px rgba(16,136,168,.10),0 1px 3px rgba(13,43,53,.06);
+  --shl:0 6px 32px rgba(16,136,168,.16),0 2px 8px rgba(13,43,53,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito Sans',sans-serif;background:var(--fog);color:var(--ink);font-size:14px}
+
+/* TOPBAR */
+.topbar{background:var(--teal);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(16,136,168,.25)}
+.logo-badge{background:var(--y);border-radius:6px;padding:4px 12px}
+.logo-text{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:var(--teal)}
+.brand-title{font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;color:#fff;margin-left:.75rem}
+.brand-sub{font-size:.72rem;color:rgba(255,255,255,.7);margin-left:.75rem}
+.topbar-badge{background:rgba(248,208,0,.2);border:1px solid rgba(248,208,0,.4);color:var(--y);font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:20px}
+
+/* REGION SELECTOR */
+.rsel{background:var(--td);padding:.7rem 2rem;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;border-bottom:3px solid var(--y);position:sticky;top:64px;z-index:190}
+.rsel-label{font-size:.65rem;font-weight:900;color:var(--y);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.rbtn{font-family:'Nunito',sans-serif;font-size:.79rem;font-weight:700;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:.35rem .95rem;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.rbtn:hover{background:rgba(255,255,255,.18);color:#fff}
+.rbtn.active{background:var(--y);border-color:var(--y);color:var(--td)}
+
+/* MAIN */
+.main{padding:1.25rem 2rem 3rem;max-width:1440px;margin:0 auto}
+
+/* TWO-PANEL LAYOUT */
+.layout{display:grid;grid-template-columns:340px 1fr;gap:1rem;align-items:start}
+
+/* COUNTRY LIST */
+.country-list{background:var(--wh);border-radius:var(--r2);box-shadow:var(--sh);border:1px solid var(--cl);overflow:hidden;position:sticky;top:130px}
+.cl-header{background:var(--td);padding:.75rem 1rem;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:900;color:var(--y);text-transform:uppercase;letter-spacing:.08em}
+.cl-region-row{display:flex;align-items:center;padding:.65rem 1rem;background:var(--tp);border-bottom:1px solid var(--cl);cursor:pointer;transition:background .15s;gap:.65rem}
+.cl-region-row:hover,.cl-region-row.active{background:var(--tl)}
+.cl-region-row.active{border-left:3px solid var(--teal)}
+.cl-country-row{display:flex;align-items:center;padding:.5rem 1rem .5rem 1.6rem;border-bottom:1px solid var(--fog);cursor:pointer;transition:background .15s;gap:.6rem}
+.cl-country-row:hover{background:var(--tp)}
+.cl-country-row.active{background:var(--tl);border-left:3px solid var(--teal)}
+.cl-name{flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)}
+.cl-count{font-size:.68rem;font-weight:700;font-family:'Nunito',sans-serif;color:var(--sl)}
+.cl-sr{font-size:.65rem;padding:.15rem .4rem;border-radius:8px;font-weight:700}
+
+/* DETAIL PANEL */
+.detail-panel{min-width:0}
+
+/* PROFILE HEADER */
+.profile-hdr{background:var(--td);border-radius:var(--r2);padding:1.1rem 1.3rem;margin-bottom:1rem;border-left:5px solid var(--y)}
+.profile-name{font-family:'Nunito',sans-serif;font-size:1.4rem;font-weight:900;color:#fff}
+.profile-sub{font-size:.75rem;color:rgba(255,255,255,.65);margin-top:.2rem}
+.profile-breadcrumb{font-size:.68rem;color:var(--y);font-weight:700;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem;margin-bottom:.9rem}
+@media(max-width:1300px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:var(--wh);border-radius:var(--r2);padding:.8rem .75rem .65rem;box-shadow:var(--sh);border:1px solid var(--cl);border-top:3px solid var(--accent,var(--teal))}
+.kpi-v{font-family:'Nunito',sans-serif;font-size:1.75rem;font-weight:900;color:var(--td);letter-spacing:-.04em;line-height:1}
+.kpi-v sup{font-size:.75rem;vertical-align:top;padding-top:.28rem;display:inline-block}
+.kpi-l{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sl);margin-top:.25rem}
+.kpi-s{font-size:.61rem;color:var(--mi);margin-top:.08rem}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:.9rem;margin-bottom:.9rem}
+
+/* CARD */
+.card{background:var(--wh);border-radius:var(--r2);padding:1rem;box-shadow:var(--sh);border:1px solid var(--cl)}
+.ct{font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:900;color:var(--td);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.1rem}
+.cs{font-size:.66rem;color:var(--sl);margin-bottom:.75rem}
+.chart-wrap{position:relative}
+
+/* STACKED BARS */
+.srow{display:grid;grid-template-columns:120px 1fr 44px;align-items:center;gap:.5rem;padding:.22rem .1rem;border-radius:var(--r);cursor:default;transition:background .12s}
+.srow:hover{background:var(--tp)}
+.slabel{font-size:.69rem;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strack{height:18px;border-radius:4px;overflow:hidden;display:flex;background:var(--fog)}
+.sseg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:800;color:rgba(255,255,255,.9)}
+.scount{font-size:.67rem;font-weight:700;color:var(--sl);text-align:right}
+
+/* PROG BARS */
+.prow{display:flex;align-items:center;gap:.55rem;padding:.22rem 0}
+.plabel{font-size:.68rem;width:110px;flex-shrink:0;color:var(--ink2);font-weight:600}
+.ptrack{flex:1;height:7px;background:var(--fog);border-radius:4px;overflow:hidden;border:1px solid var(--cl)}
+.pfill{height:100%;border-radius:4px}
+.pval{font-size:.67rem;width:36px;text-align:right;font-weight:800;color:var(--td);font-family:'Nunito',sans-serif}
+
+/* TABLE */
+.dtable{width:100%;border-collapse:collapse;font-size:.7rem}
+.dtable th{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);padding:.38rem .5rem;text-align:left;border-bottom:2px solid var(--tl)}
+.dtable td{padding:.32rem .5rem;border-bottom:1px solid var(--fog);color:var(--ink2);vertical-align:middle}
+.dtable tr:hover td{background:var(--tp)}
+.dtable td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-family:'Nunito',sans-serif}
+
+/* BADGE */
+.vbadge{display:inline-flex;align-items:center;font-size:.61rem;font-weight:700;padding:.1rem .4rem;border-radius:8px;margin-left:.3rem}
+.vup{background:#e8f8f0;color:var(--ok)}
+.vdn{background:#fdeee6;color:var(--dg)}
+.vne{background:var(--fog);color:var(--sl)}
+
+/* INSIGHT */
+.ins{border-radius:var(--r);padding:.55rem .75rem;margin-top:.6rem;font-size:.73rem;line-height:1.6}
+.ins-alert{background:#fdeee6;border-left:3px solid var(--dg);color:#7a2010}
+.ins-warn{background:#fff8e8;border-left:3px solid var(--yd);color:#7a5800}
+.ins-ok{background:#e8f8f0;border-left:3px solid var(--ok);color:#0a5a2a}
+.ins-info{background:var(--tp);border-left:3px solid var(--teal);color:var(--td)}
+
+/* NET FLOW BOX */
+.flow-row{display:flex;gap:.6rem;margin-bottom:.75rem}
+.flow-box{flex:1;background:var(--fog);border-radius:var(--r);padding:.55rem .6rem;text-align:center;border:1px solid var(--cl)}
+.flow-v{font-family:'Nunito',sans-serif;font-size:1.4rem;font-weight:900;line-height:1}
+.flow-l{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sl);margin-top:.15rem}
+
+/* GRADE PYR */
+.pyr-row{display:flex;align-items:center;gap:.5rem;padding:.2rem 0}
+.pyr-label{font-size:.67rem;width:75px;text-align:right;color:var(--ink2);font-weight:600}
+.pyr-bar{height:18px;border-radius:0 4px 4px 0;display:flex;align-items:center;padding-right:5px;justify-content:flex-end;min-width:4px;transition:width .4s}
+.pyr-n{font-size:.58rem;font-weight:800;color:#fff}
+.pyr-ext{font-size:.58rem;font-weight:800;padding-left:4px}
+.pyr-pct{font-size:.63rem;font-weight:700;width:45px;text-align:right;color:var(--sl);font-family:'Nunito',sans-serif}
+
+/* SECTION LABEL */
+.slb{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--teal);margin-bottom:.35rem;padding-bottom:.25rem;border-bottom:1px solid var(--cl)}
+
+/* COUNTRY NOTE */
+.small-n-note{background:var(--yl);border:1px solid var(--yd);border-radius:var(--r);padding:.4rem .65rem;font-size:.69rem;color:#7a5800;margin-bottom:.75rem}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .2s ease both}
+
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.country-list{position:static}}
+
+/* DEMO TAB TOGGLE */
+.demo-tabs{display:flex;gap:.4rem;margin:.9rem 0 .5rem;border-bottom:2px solid var(--cl)}
+.demo-tab{font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:700;padding:.35rem .9rem;border-radius:var(--r) var(--r) 0 0;cursor:pointer;background:var(--fog);color:var(--sl);border:1px solid var(--cl);border-bottom:none;transition:all .15s}
+.demo-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.demo-tab:hover:not(.active){background:var(--tl);color:var(--td)}
+.demo-panel{display:none}.demo-panel.active{display:block}
+.demo-note{font-size:.66rem;color:var(--mi);font-style:italic;margin-bottom:.6rem}
+</style>
+</head>
+<body>
+<div style="height:4px;background:var(--y)"></div>
+
+<nav class="topbar">
+  <div style="display:flex;align-items:center">
+    <div class="logo-badge"><span class="logo-text">tearfund</span></div>
+    <span class="brand-title">Regional &amp; Country Workforce Profiles — Talent Analytics</span>
+    <span class="brand-sub" style="margin-left:.4rem">· People &amp; Culture · December 2025</span>
+  </div>
+  <span class="topbar-badge">554 staff · 7 regions · 47 countries · Individual-level data</span>
+</nav>
+
+<div class="rsel">
+  <span class="rsel-label">Region:</span>
+  <button class="rbtn active" onclick="selectRegion('eca',this)">East &amp; Central Africa</button>
+  <button class="rbtn" onclick="selectRegion('wa',this)">West Africa</button>
+  <button class="rbtn" onclick="selectRegion('sea',this)">Southern &amp; East Africa</button>
+  <button class="rbtn" onclick="selectRegion('asia',this)">Asia</button>
+  <button class="rbtn" onclick="selectRegion('ena',this)">Eurasia &amp; North Africa</button>
+  <button class="rbtn" onclick="selectRegion('uk',this)">United Kingdom</button>
+  <button class="rbtn" onclick="selectRegion('lac',this)">Latin Am &amp; Caribbean</button>
+</div>
+
+<div class="main">
+  <div class="layout">
+    <div class="country-list" id="country-list"></div>
+    <div class="detail-panel" id="detail-panel"></div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+// ── ORG BENCHMARKS ────────────────────────────────────────────────
+const ORG={n:554,sr_pct:21.7,perm_pct:26.9,ft_pct:71.1,exit_rate:37.7,hire_rate_12m:15.3};
+
+// ── DATA ──────────────────────────────────────────────────────────
+const DATA={
+eca:{label:'East & Central Africa',color:'#E05A1E',n:241,senior_n:25,mid_n:128,junior_n:64,perm_n:34,ft_n:206,sr_pct:10.4,perm_pct:14.1,ft_pct:85.5,mob_up:15,mob_dn:22,exits_n:154,exit_rate:63.9,hire_12m:34,hire_rate_12m:14.1,net_flow:-120,
+tenure:{'< 1 yr':20,'1–3 yrs':96,'3–5 yrs':46,'5–10 yrs':62,'10+ yrs':17},
+grade_cts:{'Grade Exec':1,'Grade Head':1,'Grade 1':11,'Grade 2':12,'Grade 3':39,'Grade 4':48,'Grade 5':41,'Grade 6':15,'Grade 7':13,'Grade 8':23,'Grade 9':4,'Grade 10':9},
+hire_by_grade:{'Grade 1':1,'Grade 2':2,'Grade 3':2,'Grade 4':10,'Grade 5':3,'Grade 6':2,'Grade 7':3,'Grade 8':3,'Grade 10':3},
+groups:{'Core Operations':4,'Influencing & Programmes':232,'People & Culture':5},
+countries:{
+'Burundi':{n:16,senior_n:2,mid_n:10,junior_n:4,perm_n:11,ft_n:5,sr_pct:12.5,perm_pct:68.8,ft_pct:31.2,mob_up:0,mob_dn:0,exits_n:11,exit_rate:16.7,hire_12m:3,hire_rate_12m:18.8,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':6,'Grade 5':2,'Grade 8':2,'Grade 10':2},tenure:{'< 1 yr':2,'1–3 yrs':3,'3–5 yrs':6,'5–10 yrs':4,'10+ yrs':1},hire_by_grade:{'Grade 4':2,'Grade 10':1}},
+'Central African Republic':{n:50,senior_n:4,mid_n:21,junior_n:11,perm_n:11,ft_n:38,sr_pct:8.0,perm_pct:22.0,ft_pct:76.0,mob_up:8,mob_dn:13,exits_n:36,exit_rate:76.0,hire_12m:8,hire_rate_12m:16.0,net_flow:-6,grade_cts:{'Grade 1':2,'Grade 2':2,'Grade 3':3,'Grade 4':9,'Grade 5':9,'Grade 6':3,'Grade 7':1,'Grade 8':3,'Grade 9':2,'Grade 10':2},tenure:{'< 1 yr':3,'1–3 yrs':28,'3–5 yrs':8,'5–10 yrs':11,'10+ yrs':0},hire_by_grade:{'Grade 4':3,'Grade 5':1,'Grade 10':1}},
+'Democratic Republic of Congo':{n:43,senior_n:3,mid_n:17,junior_n:14,perm_n:0,ft_n:43,sr_pct:7.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:8,exits_n:31,exit_rate:153.5,hire_12m:5,hire_rate_12m:11.6,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':8,'Grade 4':3,'Grade 5':6,'Grade 7':8,'Grade 8':4,'Grade 9':1,'Grade 10':1},tenure:{'< 1 yr':2,'1–3 yrs':9,'3–5 yrs':9,'5–10 yrs':21,'10+ yrs':2},hire_by_grade:{'Grade 7':2,'Grade 10':1}},
+'Ethiopia':{n:37,senior_n:4,mid_n:23,junior_n:10,perm_n:1,ft_n:36,sr_pct:10.8,perm_pct:2.7,ft_pct:97.3,mob_up:4,mob_dn:0,exits_n:12,exit_rate:7.1,hire_12m:8,hire_rate_12m:21.6,net_flow:-4,grade_cts:{'Grade 1':3,'Grade 2':1,'Grade 3':8,'Grade 4':11,'Grade 5':4,'Grade 6':4,'Grade 7':3,'Grade 8':3},tenure:{'< 1 yr':6,'1–3 yrs':19,'3–5 yrs':5,'5–10 yrs':6,'10+ yrs':1},hire_by_grade:{'Grade 1':1,'Grade 2':1,'Grade 4':2,'Grade 5':1,'Grade 7':1,'Grade 8':2}},
+'Rwanda':{n:28,senior_n:7,mid_n:19,junior_n:0,perm_n:9,ft_n:19,sr_pct:25.0,perm_pct:32.1,ft_pct:67.9,mob_up:1,mob_dn:0,exits_n:3,exit_rate:6.2,hire_12m:3,hire_rate_12m:10.0,net_flow:-1,grade_cts:{'Grade Exec':1,'Grade Head':1,'Grade 1':2,'Grade 2':4,'Grade 3':6,'Grade 4':14,'Grade 8':2},tenure:{'< 1 yr':3,'1–3 yrs':7,'3–5 yrs':5,'5–10 yrs':11,'10+ yrs':4},hire_by_grade:{'Grade 4':2,'Grade 8':1}},
+'South Sudan':{n:65,senior_n:4,mid_n:37,junior_n:23,perm_n:1,ft_n:64,sr_pct:6.2,perm_pct:1.5,ft_pct:98.5,mob_up:2,mob_dn:1,exits_n:1,exit_rate:55.4,hire_12m:7,hire_rate_12m:10.8,net_flow:2,grade_cts:{'Grade 1':2,'Grade 2':2,'Grade 3':12,'Grade 4':5,'Grade 5':20,'Grade 6':8,'Grade 7':1,'Grade 8':9,'Grade 9':1,'Grade 10':4},tenure:{'< 1 yr':4,'1–3 yrs':30,'3–5 yrs':13,'5–10 yrs':9,'10+ yrs':9},hire_by_grade:{'Grade 2':1,'Grade 3':2,'Grade 4':1,'Grade 5':1,'Grade 6':2}}
+}},
+
+wa:{label:'West Africa',color:'#8E44AD',n:82,senior_n:12,mid_n:48,junior_n:14,perm_n:26,ft_n:55,sr_pct:14.6,perm_pct:31.7,ft_pct:67.1,mob_up:11,mob_dn:6,exits_n:24,exit_rate:29.3,hire_12m:15,hire_rate_12m:18.3,net_flow:-9,
+tenure:{'< 1 yr':13,'1–3 yrs':22,'3–5 yrs':13,'5–10 yrs':27,'10+ yrs':7},
+grade_cts:{'Grade Head':1,'Grade 1':5,'Grade 2':6,'Grade 3':21,'Grade 4':22,'Grade 5':5,'Grade 6':1,'Grade 7':4,'Grade 8':7,'Grade 9':1,'Grade 10':1},
+hire_by_grade:{'Grade 1':1,'Grade 3':3,'Grade 4':4,'Grade 5':1,'Grade 7':3},
+groups:{'Core Operations':3,'Influencing & Programmes':77,'People & Culture':2},
+countries:{
+'Burkina Faso':{n:14,senior_n:2,mid_n:8,junior_n:1,perm_n:8,ft_n:5,sr_pct:14.3,perm_pct:57.1,ft_pct:35.7,mob_up:2,mob_dn:2,exits_n:5,exit_rate:42.9,hire_12m:4,hire_rate_12m:28.6,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':5,'Grade 4':3,'Grade 8':1},tenure:{'< 1 yr':4,'1–3 yrs':3,'3–5 yrs':1,'5–10 yrs':5,'10+ yrs':1},hire_by_grade:{'Grade 3':2}},
+'Chad':{n:9,senior_n:2,mid_n:4,junior_n:1,perm_n:4,ft_n:5,sr_pct:22.2,perm_pct:44.4,ft_pct:55.6,mob_up:2,mob_dn:0,exits_n:3,exit_rate:44.4,hire_12m:3,hire_rate_12m:33.3,net_flow:-2,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':2,'Grade 8':1},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':3},hire_by_grade:{'Grade 4':2}},
+'Ghana':{n:2,senior_n:1,mid_n:1,junior_n:0,perm_n:0,ft_n:2,sr_pct:50.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:1,exit_rate:32.4,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade 2':1,'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}},
+'Ivory Coast':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:2,ft_n:2,sr_pct:25.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:1,exit_rate:3.2,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Liberia':{n:1,senior_n:1,mid_n:0,junior_n:0,perm_n:0,ft_n:1,sr_pct:100.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:1,exit_rate:12.5,hire_12m:0,hire_rate_12m:0.0,net_flow:-2,grade_cts:{'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Mali':{n:8,senior_n:1,mid_n:6,junior_n:1,perm_n:7,ft_n:1,sr_pct:12.5,perm_pct:87.5,ft_pct:12.5,mob_up:0,mob_dn:0,exits_n:3,exit_rate:18.5,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1,'Grade 4':4,'Grade 5':1,'Grade 8':1},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':3,'5–10 yrs':4,'10+ yrs':0},hire_by_grade:{}},
+'Nigeria':{n:37,senior_n:2,mid_n:22,junior_n:10,perm_n:2,ft_n:35,sr_pct:5.4,perm_pct:5.4,ft_pct:94.6,mob_up:3,mob_dn:4,exits_n:1,exit_rate:35.1,hire_12m:7,hire_rate_12m:18.9,net_flow:4,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':9,'Grade 4':10,'Grade 5':3,'Grade 7':4,'Grade 8':4,'Grade 9':1,'Grade 10':1},tenure:{'< 1 yr':6,'1–3 yrs':11,'3–5 yrs':5,'5–10 yrs':14,'10+ yrs':1},hire_by_grade:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 5':1,'Grade 7':3}},
+'Sierra Leone':{n:2,senior_n:0,mid_n:2,junior_n:0,perm_n:2,ft_n:0,sr_pct:0.0,perm_pct:100.0,ft_pct:0.0,mob_up:2,mob_dn:0,exits_n:1,exit_rate:33.3,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Togo':{n:5,senior_n:2,mid_n:3,junior_n:0,perm_n:1,ft_n:4,sr_pct:40.0,perm_pct:20.0,ft_pct:80.0,mob_up:1,mob_dn:0,exits_n:1,exit_rate:14.3,hire_12m:1,hire_rate_12m:20.0,net_flow:1,grade_cts:{'Grade Head':1,'Grade 1':1,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':0,'1–3 yrs':3,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 4':1}}
+}},
+
+sea:{label:'Southern & East Africa',color:'#27AE60',n:66,senior_n:21,mid_n:44,junior_n:1,perm_n:25,ft_n:39,sr_pct:31.8,perm_pct:37.9,ft_pct:59.1,mob_up:5,mob_dn:0,exits_n:1,exit_rate:33.3,hire_12m:15,hire_rate_12m:22.7,net_flow:4,
+tenure:{'< 1 yr':13,'1–3 yrs':12,'3–5 yrs':14,'5–10 yrs':17,'10+ yrs':10},
+grade_cts:{'Grade Head':1,'Grade 1':5,'Grade 2':15,'Grade 3':21,'Grade 4':19,'Grade 5':4,'Grade 6':1},
+hire_by_grade:{'Grade 3':7,'Grade 4':7,'Grade 5':1},
+groups:{'Chief Executive':1,'Core Operations':3,'Influencing & Programmes':57,'People & Culture':5},
+countries:{
+'Kenya':{n:22,senior_n:8,mid_n:14,junior_n:0,perm_n:11,ft_n:11,sr_pct:36.4,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:33.3,hire_12m:3,hire_rate_12m:11.1,net_flow:-2,grade_cts:{'Grade 1':2,'Grade 2':7,'Grade 3':9,'Grade 4':5,'Grade 5':4},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':11,'5–10 yrs':7,'10+ yrs':4},hire_by_grade:{'Grade 3':2,'Grade 5':1}},
+'Malawi':{n:9,senior_n:2,mid_n:7,junior_n:0,perm_n:2,ft_n:6,sr_pct:22.2,perm_pct:22.2,ft_pct:66.7,mob_up:3,mob_dn:0,exits_n:0,exit_rate:27.3,hire_12m:5,hire_rate_12m:55.6,net_flow:4,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':2,'Grade 4':5},tenure:{'< 1 yr':5,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':2},hire_by_grade:{'Grade 3':1,'Grade 4':4}},
+'Mozambique':{n:7,senior_n:1,mid_n:6,junior_n:0,perm_n:2,ft_n:5,sr_pct:14.3,perm_pct:28.6,ft_pct:71.4,mob_up:2,mob_dn:0,exits_n:0,exit_rate:9.1,hire_12m:3,hire_rate_12m:42.9,net_flow:2,grade_cts:{'Grade 1':1,'Grade 3':2,'Grade 4':4},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 3':2,'Grade 4':1}},
+'South Africa':{n:3,senior_n:3,mid_n:0,junior_n:0,perm_n:2,ft_n:1,sr_pct:100.0,perm_pct:66.7,ft_pct:33.3,mob_up:0,mob_dn:0,exits_n:0,exit_rate:7.1,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':3},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Tanzania':{n:1,senior_n:1,mid_n:0,junior_n:0,perm_n:0,ft_n:1,sr_pct:100.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:6.7,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Uganda':{n:3,senior_n:0,mid_n:3,junior_n:0,perm_n:0,ft_n:3,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:33.3,hire_12m:2,hire_rate_12m:66.7,net_flow:0,grade_cts:{'Grade 3':1,'Grade 4':2},tenure:{'< 1 yr':2,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{'Grade 4':2}},
+'Zambia':{n:6,senior_n:2,mid_n:4,junior_n:0,perm_n:2,ft_n:4,sr_pct:33.3,perm_pct:33.3,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:1,grade_cts:{'Grade Head':1,'Grade 2':1,'Grade 3':2,'Grade 4':2},tenure:{'< 1 yr':0,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':3,'10+ yrs':1},hire_by_grade:{}},
+'Zimbabwe':{n:9,senior_n:2,mid_n:6,junior_n:1,perm_n:2,ft_n:6,sr_pct:22.2,perm_pct:22.2,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:22.2,net_flow:2,grade_cts:{'Grade 2':2,'Grade 3':5,'Grade 4':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':5,'3–5 yrs':1,'5–10 yrs':2,'10+ yrs':1},hire_by_grade:{'Grade 3':2}}
+}},
+
+asia:{label:'Asia',color:'#2980B9',n:50,senior_n:16,mid_n:27,junior_n:6,perm_n:11,ft_n:39,sr_pct:32.0,perm_pct:22.0,ft_pct:78.0,mob_up:5,mob_dn:0,exits_n:0,exit_rate:14.0,hire_12m:12,hire_rate_12m:24.0,net_flow:5,
+tenure:{'< 1 yr':10,'1–3 yrs':6,'3–5 yrs':5,'5–10 yrs':16,'10+ yrs':13},
+grade_cts:{'Grade Head':1,'Grade 1':4,'Grade 2':11,'Grade 3':14,'Grade 4':9,'Grade 5':4,'Grade 7':1,'Grade 8':4,'Grade 9':1},
+hire_by_grade:{'Grade 2':2,'Grade 3':2,'Grade 4':4,'Grade 5':2,'Grade 7':1},
+groups:{'Core Operations':2,'Global Fundraising & Communications':1,'Influencing & Programmes':46,'People & Culture':1},
+countries:{
+'Bangladesh':{n:11,senior_n:3,mid_n:6,junior_n:2,perm_n:4,ft_n:7,sr_pct:27.3,perm_pct:36.4,ft_pct:63.6,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:4,hire_rate_12m:36.4,net_flow:2,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':2,'Grade 4':4,'Grade 8':2},tenure:{'< 1 yr':3,'1–3 yrs':2,'3–5 yrs':0,'5–10 yrs':5,'10+ yrs':1},hire_by_grade:{'Grade 3':2,'Grade 4':2}},
+'India':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:0,ft_n:4,sr_pct:25.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 3':1,'Grade 4':1,'Grade 8':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':3},hire_by_grade:{}},
+'Kyrgyzstan':{n:4,senior_n:1,mid_n:2,junior_n:1,perm_n:1,ft_n:3,sr_pct:25.0,perm_pct:25.0,ft_pct:75.0,mob_up:0,mob_dn:0,exits_n:6,exit_rate:0.0,hire_12m:1,hire_rate_12m:25.0,net_flow:1,grade_cts:{'Grade 2':1,'Grade 5':2,'Grade 7':1},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':2},hire_by_grade:{'Grade 7':1}},
+'Malaysia':{n:2,senior_n:0,mid_n:2,junior_n:0,perm_n:0,ft_n:2,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{}},
+'Myanmar':{n:5,senior_n:0,mid_n:5,junior_n:0,perm_n:0,ft_n:5,sr_pct:0.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:40.0,net_flow:0,grade_cts:{'Grade 3':2,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':2,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':2,'10+ yrs':0},hire_by_grade:{'Grade 4':1,'Grade 5':1}},
+'Nepal':{n:11,senior_n:3,mid_n:6,junior_n:2,perm_n:1,ft_n:10,sr_pct:27.3,perm_pct:9.1,ft_pct:90.9,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:9.1,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':4,'Grade 4':1,'Grade 5':1,'Grade 8':1,'Grade 9':1},tenure:{'< 1 yr':1,'1–3 yrs':1,'3–5 yrs':0,'5–10 yrs':5,'10+ yrs':4},hire_by_grade:{'Grade 5':1}},
+'Philippines':{n:6,senior_n:4,mid_n:2,junior_n:0,perm_n:2,ft_n:4,sr_pct:66.7,perm_pct:33.3,ft_pct:66.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:16.7,net_flow:1,grade_cts:{'Grade 1':1,'Grade 2':3,'Grade 3':2},tenure:{'< 1 yr':1,'1–3 yrs':1,'3–5 yrs':2,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{'Grade 2':1}},
+'Sri Lanka':{n:4,senior_n:2,mid_n:2,junior_n:0,perm_n:2,ft_n:2,sr_pct:50.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:2,hire_rate_12m:50.0,net_flow:2,grade_cts:{'Grade Head':1,'Grade 2':1,'Grade 3':1,'Grade 4':1},tenure:{'< 1 yr':2,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':1},hire_by_grade:{'Grade 2':1,'Grade 4':1}}
+}},
+
+ena:{label:'Eurasia & North Africa',color:'#D35400',n:50,senior_n:11,mid_n:36,junior_n:2,perm_n:2,ft_n:47,sr_pct:22.0,perm_pct:4.0,ft_pct:94.0,mob_up:6,mob_dn:1,exits_n:7,exit_rate:10.0,hire_12m:9,hire_rate_12m:18.0,net_flow:-61,
+tenure:{'< 1 yr':7,'1–3 yrs':13,'3–5 yrs':15,'5–10 yrs':11,'10+ yrs':4},
+grade_cts:{'Grade Head':1,'Grade 1':3,'Grade 2':7,'Grade 3':11,'Grade 4':12,'Grade 5':13,'Grade 8':2},
+hire_by_grade:{'Grade 2':1,'Grade 3':2,'Grade 4':4,'Grade 5':2},
+groups:{'Core Operations':3,'Influencing & Programmes':46,'People & Culture':1},
+countries:{
+'Iraq':{n:9,senior_n:1,mid_n:7,junior_n:0,perm_n:0,ft_n:9,sr_pct:11.1,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:1,exits_n:66,exit_rate:0.0,hire_12m:3,hire_rate_12m:33.3,net_flow:1,grade_cts:{'Grade 1':1,'Grade 3':3,'Grade 4':1,'Grade 5':3},tenure:{'< 1 yr':2,'1–3 yrs':4,'3–5 yrs':2,'5–10 yrs':1,'10+ yrs':0},hire_by_grade:{'Grade 3':2,'Grade 4':1}},
+'Jordan':{n:9,senior_n:3,mid_n:6,junior_n:0,perm_n:1,ft_n:8,sr_pct:33.3,perm_pct:11.1,ft_pct:88.9,mob_up:1,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:11.1,net_flow:-30,grade_cts:{'Grade Head':1,'Grade 2':2,'Grade 3':1,'Grade 4':1,'Grade 5':4},tenure:{'< 1 yr':1,'1–3 yrs':3,'3–5 yrs':3,'5–10 yrs':2,'10+ yrs':0},hire_by_grade:{'Grade 2':1}},
+'Lebanon':{n:14,senior_n:3,mid_n:11,junior_n:0,perm_n:0,ft_n:13,sr_pct:21.4,perm_pct:0.0,ft_pct:92.9,mob_up:3,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:5,hire_rate_12m:35.7,net_flow:5,grade_cts:{'Grade 1':1,'Grade 2':2,'Grade 3':3,'Grade 4':5,'Grade 5':3},tenure:{'< 1 yr':4,'1–3 yrs':5,'3–5 yrs':5,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{'Grade 4':3,'Grade 5':2}},
+'Pakistan':{n:15,senior_n:2,mid_n:11,junior_n:2,perm_n:1,ft_n:14,sr_pct:13.3,perm_pct:6.7,ft_pct:93.3,mob_up:0,mob_dn:0,exits_n:38,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 2':1,'Grade 3':3,'Grade 4':5,'Grade 5':3,'Grade 8':2},tenure:{'< 1 yr':0,'1–3 yrs':1,'3–5 yrs':3,'5–10 yrs':7,'10+ yrs':4},hire_by_grade:{}},
+'Syria':{n:2,senior_n:1,mid_n:1,junior_n:0,perm_n:0,ft_n:2,sr_pct:50.0,perm_pct:0.0,ft_pct:100.0,mob_up:1,mob_dn:0,exits_n:4,exit_rate:11.1,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}}
+}},
+
+uk:{label:'United Kingdom',color:'#1088A8',n:58,senior_n:32,mid_n:22,junior_n:0,perm_n:48,ft_n:5,sr_pct:55.2,perm_pct:82.8,ft_pct:8.6,mob_up:2,mob_dn:0,exits_n:5,exit_rate:9.3,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,
+tenure:{'< 1 yr':0,'1–3 yrs':10,'3–5 yrs':13,'5–10 yrs':20,'10+ yrs':15},
+grade_cts:{'Grade Head':2,'Grade 1':12,'Grade 2':18,'Grade 3':12,'Grade 4':8,'Grade 5':5},
+hire_by_grade:{},
+groups:{'Chief Executive':5,'Core Operations':90,'Global Fundraising & Communications':160,'Influencing & Programmes':58,'People & Culture':22},
+countries:{
+'United Kingdom':{n:58,senior_n:32,mid_n:22,junior_n:0,perm_n:48,ft_n:5,sr_pct:55.2,perm_pct:82.8,ft_pct:8.6,mob_up:2,mob_dn:0,exits_n:31,exit_rate:1.7,hire_12m:0,hire_rate_12m:0.0,net_flow:-1,grade_cts:{'Grade Head':2,'Grade 1':12,'Grade 2':18,'Grade 3':12,'Grade 4':8,'Grade 5':5},tenure:{'< 1 yr':0,'1–3 yrs':10,'3–5 yrs':13,'5–10 yrs':20,'10+ yrs':15},hire_by_grade:{}}
+
+}},
+
+lac:{label:'Latin America & Caribbean',color:'#16A085',n:14,senior_n:5,mid_n:7,junior_n:2,perm_n:8,ft_n:5,sr_pct:35.7,perm_pct:57.1,ft_pct:35.7,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:1,hire_rate_12m:7.1,net_flow:2,
+tenure:{'< 1 yr':1,'1–3 yrs':0,'3–5 yrs':2,'5–10 yrs':9,'10+ yrs':2},
+grade_cts:{'Grade 1':1,'Grade 2':4,'Grade 3':2,'Grade 4':4,'Grade 5':1,'Grade 6':2},
+hire_by_grade:{'Grade 6':1},
+groups:{'Influencing & Programmes':14},
+countries:{
+'Brazil':{n:3,senior_n:1,mid_n:2,junior_n:0,perm_n:3,ft_n:0,sr_pct:33.3,perm_pct:100.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 4':2},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':2,'10+ yrs':1},hire_by_grade:{}},
+'Colombia':{n:4,senior_n:1,mid_n:3,junior_n:0,perm_n:1,ft_n:3,sr_pct:25.0,perm_pct:25.0,ft_pct:75.0,mob_up:0,mob_dn:0,exits_n:13,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 4':2,'Grade 5':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':3,'10+ yrs':0},hire_by_grade:{}},
+'Ecuador':{n:2,senior_n:2,mid_n:0,junior_n:0,perm_n:1,ft_n:1,sr_pct:100.0,perm_pct:50.0,ft_pct:50.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 1':1,'Grade 2':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':1,'10+ yrs':1},hire_by_grade:{}},
+'Honduras':{n:3,senior_n:1,mid_n:1,junior_n:1,perm_n:3,ft_n:0,sr_pct:33.3,perm_pct:100.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 2':1,'Grade 3':1,'Grade 6':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':0,'5–10 yrs':3,'10+ yrs':0},hire_by_grade:{}},
+'Peru':{n:1,senior_n:0,mid_n:1,junior_n:0,perm_n:0,ft_n:0,sr_pct:0.0,perm_pct:0.0,ft_pct:0.0,mob_up:0,mob_dn:0,exits_n:0,exit_rate:0.0,hire_12m:0,hire_rate_12m:0.0,net_flow:0,grade_cts:{'Grade 3':1},tenure:{'< 1 yr':0,'1–3 yrs':0,'3–5 yrs':1,'5–10 yrs':0,'10+ yrs':0},hire_by_grade:{}}
+}}
+};
+
+// ── CONSTANTS ─────────────────────────────────────────────────────
+const DEMO={"asia":{"total":49,"female":20,"male":29,"female_pct":40.8,"gender_grade":{"Grade 1":{"f":1,"m":3},"Grade 2":{"f":3,"m":7},"Grade 3":{"f":7,"m":7},"Grade 4":{"f":4,"m":5},"Grade 5":{"f":3,"m":1},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":0,"m":5},"Grade 9":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":8,"36-45":19,"46-60":21,"60+":1},"countries":{"Bangladesh":{"total":11,"female":2,"male":9,"female_pct":18.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":1,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":1,"m":3},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 2":{"36-45":2},"Grade 3":{"26-35":1,"46-60":1},"Grade 4":{"26-35":2,"36-45":1,"46-60":1},"Grade 8":{"36-45":1,"46-60":1}},"age_totals":{"26-35":3,"36-45":4,"46-60":4}},"India":{"total":4,"female":1,"male":3,"female_pct":25.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":1},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":1},"Grade 3":{"46-60":1},"Grade 4":{"36-45":1},"Grade 8":{"46-60":1}},"age_totals":{"36-45":1,"46-60":3}},"Indonesia":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 8":{"46-60":1}},"age_totals":{"46-60":1}},"Kyrgyzstan":{"total":4,"female":4,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 5":{"f":2,"m":0},"Grade 7":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 5":{"26-35":1,"46-60":1},"Grade 7":{"26-35":1}},"age_totals":{"26-35":2,"46-60":2}},"Malaysia":{"total":2,"female":1,"male":1,"female_pct":50.0,"gender_grade":{"Grade 3":{"f":1,"m":1}},"age_grade":{"Grade 3":{"36-45":2}},"age_totals":{"36-45":2}},"Myanmar":{"total":5,"female":3,"male":2,"female_pct":60.0,"gender_grade":{"Grade 3":{"f":1,"m":1},"Grade 4":{"f":1,"m":1},"Grade 5":{"f":1,"m":0}},"age_grade":{"Grade 3":{"46-60":2},"Grade 4":{"26-35":1,"46-60":1},"Grade 5":{"36-45":1}},"age_totals":{"26-35":1,"36-45":1,"46-60":3}},"Nepal":{"total":10,"female":3,"male":7,"female_pct":30.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":3},"Grade 4":{"f":1,"m":0},"Grade 5":{"f":0,"m":1},"Grade 8":{"f":0,"m":1},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"26-35":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":3,"46-60":1},"Grade 4":{"26-35":1},"Grade 5":{"36-45":1},"Grade 8":{"36-45":1},"Grade 9":{"46-60":1}},"age_totals":{"26-35":2,"36-45":5,"46-60":3}},"Philippines":{"total":6,"female":3,"male":3,"female_pct":50.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":0,"m":3},"Grade 3":{"f":2,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"36-45":1,"46-60":2},"Grade 3":{"36-45":1,"46-60":1}},"age_totals":{"36-45":3,"46-60":3}},"Roving":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Sri Lanka":{"total":4,"female":3,"male":1,"female_pct":75.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"46-60":1},"Grade 4":{"36-45":1},"Grade Head":{"36-45":1}},"age_totals":{"36-45":3,"46-60":1}},"United Kingdom":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"60+":1}},"age_totals":{"60+":1}}}},"eca":{"total":217,"female":57,"male":160,"female_pct":26.3,"gender_grade":{"Grade 1":{"f":2,"m":9},"Grade 10":{"f":4,"m":5},"Grade 2":{"f":1,"m":11},"Grade 3":{"f":9,"m":30},"Grade 4":{"f":19,"m":28},"Grade 5":{"f":7,"m":34},"Grade 6":{"f":5,"m":10},"Grade 7":{"f":5,"m":8},"Grade 8":{"f":1,"m":23},"Grade 9":{"f":3,"m":1},"Grade Exec":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":51,"36-45":115,"46-60":48,"60+":3},"countries":{"Burundi":{"total":16,"female":5,"male":11,"female_pct":31.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 10":{"f":0,"m":2},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":3,"m":3},"Grade 5":{"f":2,"m":0},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 10":{"26-35":1,"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":2},"Grade 4":{"26-35":2,"36-45":3,"46-60":1},"Grade 5":{"26-35":2},"Grade 8":{"26-35":2}},"age_totals":{"26-35":9,"36-45":4,"46-60":3}},"Central African Republic":{"total":36,"female":6,"male":30,"female_pct":16.7,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 10":{"f":0,"m":2},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":0,"m":3},"Grade 4":{"f":3,"m":5},"Grade 5":{"f":0,"m":9},"Grade 6":{"f":0,"m":3},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":2,"m":0}},"age_grade":{"Grade 1":{"36-45":1,"60+":1},"Grade 10":{"36-45":2},"Grade 2":{"46-60":1,"60+":1},"Grade 3":{"36-45":2,"46-60":1},"Grade 4":{"26-35":2,"36-45":6},"Grade 5":{"26-35":2,"36-45":6,"46-60":1},"Grade 6":{"36-45":2,"46-60":1},"Grade 7":{"26-35":1},"Grade 8":{"26-35":1,"36-45":3},"Grade 9":{"26-35":2}},"age_totals":{"26-35":8,"36-45":22,"46-60":4,"60+":2}},"Democratic Republic of Congo":{"total":34,"female":5,"male":29,"female_pct":14.7,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 10":{"f":1,"m":0},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":1,"m":7},"Grade 4":{"f":0,"m":3},"Grade 5":{"f":1,"m":5},"Grade 7":{"f":1,"m":7},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":0,"m":1}},"age_grade":{"Grade 1":{"26-35":1},"Grade 10":{"26-35":1},"Grade 2":{"46-60":1,"60+":1},"Grade 3":{"26-35":1,"36-45":3,"46-60":4},"Grade 4":{"36-45":1,"46-60":2},"Grade 5":{"26-35":1,"36-45":5},"Grade 7":{"26-35":2,"36-45":5,"46-60":1},"Grade 8":{"36-45":4},"Grade 9":{"36-45":1}},"age_totals":{"26-35":6,"36-45":19,"46-60":8,"60+":1}},"Ethiopia":{"total":37,"female":11,"male":26,"female_pct":29.7,"gender_grade":{"Grade 1":{"f":1,"m":2},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":2,"m":6},"Grade 4":{"f":1,"m":10},"Grade 5":{"f":1,"m":3},"Grade 6":{"f":4,"m":0},"Grade 7":{"f":2,"m":1},"Grade 8":{"f":0,"m":3}},"age_grade":{"Grade 1":{"46-60":3},"Grade 2":{"46-60":1},"Grade 3":{"36-45":5,"46-60":3},"Grade 4":{"26-35":2,"36-45":7,"46-60":2},"Grade 5":{"26-35":2,"36-45":2},"Grade 6":{"26-35":4},"Grade 7":{"26-35":2,"46-60":1},"Grade 8":{"36-45":1,"46-60":2}},"age_totals":{"26-35":10,"36-45":15,"46-60":12}},"Rwanda":{"total":30,"female":16,"male":14,"female_pct":53.3,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 2":{"f":1,"m":3},"Grade 3":{"f":3,"m":3},"Grade 4":{"f":11,"m":3},"Grade 8":{"f":0,"m":2},"Grade Exec":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":2},"Grade 2":{"36-45":1,"46-60":3},"Grade 3":{"26-35":1,"36-45":4,"46-60":1},"Grade 4":{"26-35":6,"36-45":5,"46-60":3},"Grade 8":{"36-45":1,"46-60":1},"Grade Exec":{"46-60":1},"Grade Head":{"36-45":1}},"age_totals":{"26-35":7,"36-45":12,"46-60":11}},"South Sudan":{"total":64,"female":14,"male":50,"female_pct":21.9,"gender_grade":{"Grade 1":{"f":0,"m":2},"Grade 10":{"f":3,"m":1},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":3,"m":9},"Grade 4":{"f":1,"m":4},"Grade 5":{"f":3,"m":17},"Grade 6":{"f":1,"m":7},"Grade 7":{"f":1,"m":0},"Grade 8":{"f":1,"m":8},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":2},"Grade 10":{"36-45":2,"46-60":2},"Grade 2":{"46-60":2},"Grade 3":{"26-35":1,"36-45":10,"46-60":1},"Grade 4":{"36-45":5},"Grade 5":{"26-35":4,"36-45":12,"46-60":4},"Grade 6":{"26-35":3,"36-45":5},"Grade 7":{"26-35":1},"Grade 8":{"26-35":2,"36-45":6,"46-60":1},"Grade 9":{"36-45":1}},"age_totals":{"26-35":11,"36-45":43,"46-60":10}}}},"ena":{"total":48,"female":17,"male":31,"female_pct":35.4,"gender_grade":{"Grade 1":{"f":2,"m":1},"Grade 2":{"f":3,"m":4},"Grade 3":{"f":4,"m":7},"Grade 4":{"f":0,"m":12},"Grade 5":{"f":8,"m":4},"Grade 8":{"f":0,"m":2},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":15,"36-45":19,"46-60":14},"countries":{"Iraq":{"total":7,"female":3,"male":4,"female_pct":42.9,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 3":{"f":1,"m":2},"Grade 4":{"f":0,"m":1},"Grade 5":{"f":1,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 3":{"36-45":2,"46-60":1},"Grade 4":{"26-35":1},"Grade 5":{"26-35":2}},"age_totals":{"26-35":3,"36-45":3,"46-60":1}},"Jordan":{"total":9,"female":6,"male":3,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":2,"m":0},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":1},"Grade 5":{"f":3,"m":1},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 2":{"26-35":1,"36-45":1},"Grade 3":{"26-35":1},"Grade 4":{"36-45":1},"Grade 5":{"26-35":1,"36-45":3},"Grade Head":{"46-60":1}},"age_totals":{"26-35":3,"36-45":5,"46-60":1}},"Lebanon":{"total":14,"female":4,"male":10,"female_pct":28.6,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":0,"m":2},"Grade 3":{"f":1,"m":2},"Grade 4":{"f":0,"m":5},"Grade 5":{"f":2,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"36-45":1,"46-60":1},"Grade 3":{"26-35":2,"46-60":1},"Grade 4":{"26-35":3,"36-45":2},"Grade 5":{"26-35":2,"36-45":1}},"age_totals":{"26-35":7,"36-45":5,"46-60":2}},"Pakistan":{"total":15,"female":2,"male":13,"female_pct":13.3,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":3},"Grade 4":{"f":0,"m":5},"Grade 5":{"f":2,"m":1},"Grade 8":{"f":0,"m":2}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":1,"36-45":1,"46-60":1},"Grade 4":{"46-60":5},"Grade 5":{"36-45":3},"Grade 8":{"36-45":1,"46-60":1}},"age_totals":{"26-35":1,"36-45":6,"46-60":8}},"Philippines":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Syria":{"total":2,"female":1,"male":1,"female_pct":50.0,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"26-35":1}},"age_totals":{"26-35":1,"46-60":1}}}},"lac":{"total":13,"female":8,"male":5,"female_pct":61.5,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":2,"m":2},"Grade 3":{"f":2,"m":0},"Grade 4":{"f":2,"m":1},"Grade 5":{"f":1,"m":0},"Grade 6":{"f":0,"m":2}},"age_totals":{"26-35":2,"36-45":3,"46-60":7,"60+":1},"countries":{"Brazil":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 4":{"f":1,"m":1}},"age_grade":{"Grade 2":{"46-60":1},"Grade 4":{"36-45":1,"46-60":1}},"age_totals":{"36-45":1,"46-60":2}},"Colombia":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 4":{"f":1,"m":0},"Grade 5":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 4":{"46-60":1},"Grade 5":{"46-60":1}},"age_totals":{"46-60":3}},"Ecuador":{"total":2,"female":2,"male":0,"female_pct":100.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 2":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1}},"age_totals":{"36-45":1,"46-60":1}},"Guatemala":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 6":{"f":0,"m":1}},"age_grade":{"Grade 6":{"26-35":1}},"age_totals":{"26-35":1}},"Honduras":{"total":3,"female":1,"male":2,"female_pct":33.3,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 6":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"26-35":1},"Grade 6":{"60+":1}},"age_totals":{"26-35":1,"36-45":1,"60+":1}},"Peru":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 3":{"46-60":1}},"age_totals":{"46-60":1}}}},"sea":{"total":66,"female":32,"male":34,"female_pct":48.5,"gender_grade":{"Grade 1":{"f":2,"m":3},"Grade 2":{"f":6,"m":9},"Grade 3":{"f":14,"m":7},"Grade 4":{"f":5,"m":14},"Grade 5":{"f":3,"m":1},"Grade 6":{"f":1,"m":0},"Grade Head":{"f":1,"m":0}},"age_totals":{"19-25":1,"26-35":15,"36-45":22,"46-60":24,"60+":4},"countries":{"Kenya":{"total":27,"female":14,"male":13,"female_pct":51.9,"gender_grade":{"Grade 1":{"f":1,"m":1},"Grade 2":{"f":2,"m":5},"Grade 3":{"f":7,"m":2},"Grade 4":{"f":1,"m":4},"Grade 5":{"f":3,"m":1}},"age_grade":{"Grade 1":{"36-45":1,"46-60":1},"Grade 2":{"26-35":1,"36-45":3,"46-60":3},"Grade 3":{"36-45":4,"46-60":4,"60+":1},"Grade 4":{"26-35":3,"36-45":1,"46-60":1},"Grade 5":{"26-35":1,"36-45":3}},"age_totals":{"26-35":5,"36-45":12,"46-60":9,"60+":1}},"Malawi":{"total":9,"female":2,"male":7,"female_pct":22.2,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":1},"Grade 4":{"f":1,"m":4}},"age_grade":{"Grade 1":{"60+":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"19-25":1,"26-35":3,"36-45":1}},"age_totals":{"19-25":1,"26-35":3,"36-45":2,"46-60":2,"60+":1}},"Mozambique":{"total":7,"female":2,"male":5,"female_pct":28.6,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":2,"m":2}},"age_grade":{"Grade 1":{"46-60":1},"Grade 3":{"26-35":1,"46-60":1},"Grade 4":{"26-35":2,"36-45":1,"60+":1}},"age_totals":{"26-35":3,"36-45":1,"46-60":2,"60+":1}},"Rwanda":{"total":1,"female":1,"male":0,"female_pct":100.0,"gender_grade":{"Grade 1":{"f":1,"m":0}},"age_grade":{"Grade 1":{"46-60":1}},"age_totals":{"46-60":1}},"South Africa":{"total":3,"female":2,"male":1,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":2,"m":1}},"age_grade":{"Grade 2":{"46-60":3}},"age_totals":{"46-60":3}},"Tanzania":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"36-45":1}},"age_totals":{"36-45":1}},"Uganda":{"total":3,"female":1,"male":2,"female_pct":33.3,"gender_grade":{"Grade 3":{"f":1,"m":0},"Grade 4":{"f":0,"m":2}},"age_grade":{"Grade 3":{"46-60":1},"Grade 4":{"26-35":1,"46-60":1}},"age_totals":{"26-35":1,"46-60":2}},"Zambia":{"total":6,"female":4,"male":2,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":2,"m":0},"Grade 4":{"f":0,"m":2},"Grade Head":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"36-45":2},"Grade Head":{"60+":1}},"age_totals":{"36-45":3,"46-60":2,"60+":1}},"Zimbabwe":{"total":9,"female":6,"male":3,"female_pct":66.7,"gender_grade":{"Grade 2":{"f":1,"m":1},"Grade 3":{"f":3,"m":2},"Grade 4":{"f":1,"m":0},"Grade 6":{"f":1,"m":0}},"age_grade":{"Grade 2":{"46-60":2},"Grade 3":{"26-35":1,"36-45":3,"46-60":1},"Grade 4":{"26-35":1},"Grade 6":{"26-35":1}},"age_totals":{"26-35":3,"36-45":3,"46-60":3}}}},"uk":{"total":56,"female":34,"male":22,"female_pct":60.7,"gender_grade":{"Grade 1":{"f":4,"m":8},"Grade 2":{"f":11,"m":6},"Grade 3":{"f":8,"m":4},"Grade 4":{"f":7,"m":1},"Grade 5":{"f":2,"m":3},"Grade Head":{"f":2,"m":0}},"age_totals":{"19-25":1,"26-35":15,"36-45":16,"46-60":17,"60+":7},"countries":{"United Kingdom":{"total":56,"female":34,"male":22,"female_pct":60.7,"gender_grade":{"Grade 1":{"f":4,"m":8},"Grade 2":{"f":11,"m":6},"Grade 3":{"f":8,"m":4},"Grade 4":{"f":7,"m":1},"Grade 5":{"f":2,"m":3},"Grade Head":{"f":2,"m":0}},"age_grade":{"Grade 1":{"26-35":1,"36-45":3,"46-60":6,"60+":2},"Grade 2":{"26-35":6,"36-45":3,"46-60":5,"60+":3},"Grade 3":{"26-35":4,"36-45":6,"46-60":1,"60+":1},"Grade 4":{"26-35":2,"36-45":2,"46-60":3,"60+":1},"Grade 5":{"19-25":1,"26-35":2,"36-45":2},"Grade Head":{"46-60":2}},"age_totals":{"19-25":1,"26-35":15,"36-45":16,"46-60":17,"60+":7}}}},"wa":{"total":76,"female":24,"male":52,"female_pct":31.6,"gender_grade":{"Grade 1":{"f":2,"m":3},"Grade 10":{"f":0,"m":1},"Grade 2":{"f":2,"m":4},"Grade 3":{"f":6,"m":16},"Grade 4":{"f":4,"m":17},"Grade 5":{"f":5,"m":0},"Grade 6":{"f":1,"m":0},"Grade 7":{"f":2,"m":2},"Grade 8":{"f":1,"m":8},"Grade 9":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_totals":{"26-35":16,"36-45":40,"46-60":18,"60+":2},"countries":{"Burkina Faso":{"total":12,"female":2,"male":10,"female_pct":16.7,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":1,"m":5},"Grade 4":{"f":1,"m":2},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"46-60":1},"Grade 3":{"26-35":1,"36-45":3,"46-60":2},"Grade 4":{"36-45":2,"46-60":1},"Grade 8":{"46-60":1}},"age_totals":{"26-35":1,"36-45":6,"46-60":5}},"Chad":{"total":9,"female":1,"male":8,"female_pct":11.1,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":2},"Grade 4":{"f":0,"m":2},"Grade 8":{"f":1,"m":2}},"age_grade":{"Grade 1":{"36-45":1},"Grade 2":{"60+":1},"Grade 3":{"36-45":1,"46-60":1},"Grade 4":{"26-35":1,"36-45":1},"Grade 8":{"26-35":1,"36-45":2}},"age_totals":{"26-35":2,"36-45":5,"46-60":1,"60+":1}},"Ghana":{"total":2,"female":2,"male":0,"female_pct":100.0,"gender_grade":{"Grade 2":{"f":1,"m":0},"Grade 3":{"f":1,"m":0}},"age_grade":{"Grade 2":{"36-45":1},"Grade 3":{"36-45":1}},"age_totals":{"36-45":2}},"Ivory Coast":{"total":4,"female":3,"male":1,"female_pct":75.0,"gender_grade":{"Grade 1":{"f":0,"m":1},"Grade 3":{"f":1,"m":0},"Grade 4":{"f":1,"m":0},"Grade 6":{"f":1,"m":0}},"age_grade":{"Grade 1":{"36-45":1},"Grade 3":{"36-45":1},"Grade 4":{"36-45":1},"Grade 6":{"26-35":1}},"age_totals":{"26-35":1,"36-45":3}},"Liberia":{"total":1,"female":0,"male":1,"female_pct":0.0,"gender_grade":{"Grade 2":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1}},"age_totals":{"46-60":1}},"Mali":{"total":8,"female":1,"male":7,"female_pct":12.5,"gender_grade":{"Grade 2":{"f":0,"m":1},"Grade 3":{"f":0,"m":1},"Grade 4":{"f":0,"m":4},"Grade 5":{"f":1,"m":0},"Grade 8":{"f":0,"m":1}},"age_grade":{"Grade 2":{"46-60":1},"Grade 3":{"36-45":1},"Grade 4":{"36-45":3,"46-60":1},"Grade 5":{"36-45":1},"Grade 8":{"36-45":1}},"age_totals":{"36-45":6,"46-60":2}},"Nigeria":{"total":33,"female":12,"male":21,"female_pct":36.4,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 10":{"f":0,"m":1},"Grade 2":{"f":1,"m":0},"Grade 3":{"f":3,"m":6},"Grade 4":{"f":1,"m":8},"Grade 5":{"f":3,"m":0},"Grade 7":{"f":2,"m":2},"Grade 8":{"f":0,"m":4},"Grade 9":{"f":1,"m":0}},"age_grade":{"Grade 1":{"46-60":1},"Grade 10":{"26-35":1},"Grade 2":{"46-60":1},"Grade 3":{"36-45":7,"46-60":1,"60+":1},"Grade 4":{"26-35":1,"36-45":6,"46-60":2},"Grade 5":{"26-35":3},"Grade 7":{"26-35":2,"36-45":2},"Grade 8":{"26-35":1,"36-45":2,"46-60":1},"Grade 9":{"26-35":1}},"age_totals":{"26-35":9,"36-45":17,"46-60":6,"60+":1}},"Sierra Leone":{"total":2,"female":0,"male":2,"female_pct":0.0,"gender_grade":{"Grade 3":{"f":0,"m":2}},"age_grade":{"Grade 3":{"26-35":1,"46-60":1}},"age_totals":{"26-35":1,"46-60":1}},"Togo":{"total":5,"female":3,"male":2,"female_pct":60.0,"gender_grade":{"Grade 1":{"f":1,"m":0},"Grade 4":{"f":1,"m":1},"Grade 5":{"f":1,"m":0},"Grade Head":{"f":0,"m":1}},"age_grade":{"Grade 1":{"46-60":1},"Grade 4":{"26-35":1,"36-45":1},"Grade 5":{"26-35":1},"Grade Head":{"46-60":1}},"age_totals":{"26-35":2,"36-45":1,"46-60":2}}}}};
+
+const CAT_COL={Senior:'#1088A8',Mid:'#F8D000',Junior:'#E05A1E'};
+const TORD=['< 1 yr','1–3 yrs','3–5 yrs','5–10 yrs','10+ yrs'];
+const TCOL=['#c0392b','#e67e22','#d9b800','#1a8a5a','#1088A8'];
+const GRADE_ORDER=['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10'];
+
+let currentRegion=null, currentCountry=null, charts={};
+
+function pct(v,t){return t?Math.round(v/t*1000)/10:0}
+function vb(val,orgVal,higherGood=true){
+  const d=val-orgVal;
+  if(Math.abs(d)<1.5) return `<span class="vbadge vne">≈ avg</span>`;
+  const better=higherGood?d>0:d<0;
+  return `<span class="vbadge ${better?'vup':'vdn'}">${d>0?'+':''}${d.toFixed(0)}pp</span>`;
+}
+function getCat(g){return ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(g)?'Senior':['Grade 3','Grade 4','Grade 5'].includes(g)?'Mid':'Junior'}
+
+function killCharts(){Object.values(charts).forEach(c=>c.destroy());charts={};window._currentDemoData=null;}
+
+// ── COUNTRY LIST ──────────────────────────────────────────────────
+function buildCountryList(rkey){
+  const r=DATA[rkey];
+  const countries=Object.entries(r.countries).sort((a,b)=>b[1].n-a[1].n);
+  let html=`<div class="cl-header">📍 ${r.label} · ${r.n} staff</div>`;
+  // Region summary row
+  html+=`<div class="cl-region-row active" id="cl-region" onclick="showRegion('${rkey}')">
+    <div style="flex:1">
+      <div class="cl-name" style="font-size:.78rem;font-weight:800;color:var(--ink)">${r.label}</div>
+      <div style="font-size:.63rem;color:var(--sl)">All ${r.n} staff · ${r.sr_pct}% senior</div>
+    </div>
+    <span class="cl-sr" style="background:${r.sr_pct>=28?'#e8f8f0':'#fdeee6'};color:${r.sr_pct>=28?'var(--ok)':'var(--dg)'}">${r.sr_pct}%</span>
+  </div>`;
+  // Countries
+  countries.forEach(([cname,cd])=>{
+    const srCol=cd.sr_pct>=28?'#e8f8f0':'#fdeee6';
+    const srTxt=cd.sr_pct>=28?'var(--ok)':'var(--dg)';
+    html+=`<div class="cl-country-row" id="cl-${CSS.escape(cname)}" onclick="showCountry('${rkey}','${cname.replace(/'/g,"\\'")}')">
+      <div style="flex:1">
+        <div class="cl-name">${cname}</div>
+        <div style="font-size:.62rem;color:var(--sl)">${cd.n} staff · FT ${cd.ft_pct}%</div>
+      </div>
+      <span class="cl-sr" style="background:${srCol};color:${srTxt}">${cd.sr_pct}%</span>
+    </div>`;
+  });
+  document.getElementById('country-list').innerHTML=html;
+}
+
+function setActive(id){
+  document.querySelectorAll('.cl-region-row,.cl-country-row').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+// ── SHOW REGION ───────────────────────────────────────────────────
+function showRegion(rkey){
+  currentCountry=null;
+  setActive('cl-region');
+  renderProfile(DATA[rkey],DATA[rkey].label,'region',rkey);
+}
+
+// ── SHOW COUNTRY ──────────────────────────────────────────────────
+function showCountry(rkey,cname){
+  currentCountry=cname;
+  setActive('cl-'+CSS.escape(cname));
+  const cd=DATA[rkey].countries[cname];
+  renderProfile(cd,cname,'country',rkey,cname);
+}
+
+// ── RENDER PROFILE ────────────────────────────────────────────────
+function renderProfile(d,name,type,rkey,cname){
+  killCharts();
+  const r=DATA[rkey];
+  const isSmall=d.n<5;
+  const netCol=d.net_flow>=0?'var(--ok)':'var(--dg)';
+  const gradePairs=Object.entries(d.grade_cts||{}).filter(([g,n])=>n>0);
+  const gradeEntries=GRADE_ORDER.filter(g=>d.grade_cts&&d.grade_cts[g]>0).map(g=>({g,n:d.grade_cts[g]}));
+  const maxGrade=gradeEntries.length?Math.max(...gradeEntries.map(e=>e.n)):1;
+  const tenureEntries=TORD.map((b,i)=>({b,n:d.tenure&&d.tenure[b]?d.tenure[b]:0,c:TCOL[i]}));
+  const hireGrades=Object.entries(d.hire_by_grade||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+  const cEntries=Object.entries(r.countries).sort((a,b)=>b[1].n-a[1].n);
+
+  let html=`<div class="fade-in">`;
+
+  // HEADER
+  html+=`<div class="profile-hdr">
+    ${type==='country'?`<div class="profile-breadcrumb">📍 ${r.label} › ${name}</div>`:`<div class="profile-breadcrumb">🌍 Region Overview</div>`}
+    <div class="profile-name">${name}</div>
+    <div class="profile-sub">${d.n} staff ${type==='region'?`· ${Object.keys(r.countries).length} countries`:''}
+      ${type==='region'?`· ${d.sr_pct}% senior · ${d.ft_pct}% fixed-term`:
+        `· <span style="color:rgba(255,255,255,.6)">${r.label}</span>`}
+    </div>
+  </div>`;
+
+  if(isSmall) html+=`<div class="small-n-note">⚠ Small sample (n=${d.n}) — percentages are sensitive to individual moves. Interpret with caution.</div>`;
+
+  // KPIs
+  html+=`<div class="kpi-grid">
+    <div class="kpi" style="--accent:${r.color}"><div class="kpi-v">${d.n}</div><div class="kpi-l">Staff</div><div class="kpi-s">${type==='region'?Object.keys(r.countries).length+' countries':r.label}</div></div>
+    <div class="kpi" style="--accent:var(--sr)"><div class="kpi-v">${d.sr_pct}<sup>%</sup></div><div class="kpi-l">Senior</div><div class="kpi-s">${d.senior_n} staff ${vb(d.sr_pct,ORG.sr_pct)}</div></div>
+    <div class="kpi" style="--accent:var(--pm)"><div class="kpi-v">${d.perm_pct}<sup>%</sup></div><div class="kpi-l">Permanent</div><div class="kpi-s">${d.perm_n} staff ${vb(d.perm_pct,ORG.perm_pct)}</div></div>
+    <div class="kpi" style="--accent:var(--dg)"><div class="kpi-v">${d.exit_rate}<sup>%</sup></div><div class="kpi-l">Exit Rate</div><div class="kpi-s">${d.exits_n} exits ${vb(d.exit_rate,ORG.exit_rate,false)}</div></div>
+    <div class="kpi" style="--accent:var(--teal)"><div class="kpi-v">${d.hire_rate_12m}<sup>%</sup></div><div class="kpi-l">Hire Rate 12m</div><div class="kpi-s">${d.hire_12m} hires · CSD-based</div></div>
+    <div class="kpi" style="--accent:${d.net_flow>=0?'var(--pm)':'var(--dg)'}"><div class="kpi-v" style="color:${netCol}">${d.net_flow>=0?'+':''}${d.net_flow}</div><div class="kpi-l">Net Flow</div><div class="kpi-s">Hires minus exits</div></div>
+  </div>`;
+
+  // GRADE + CONTRACT + TENURE
+  html+=`<div class="g3">
+    <div class="card">
+      <div class="ct">Grade Distribution</div><div class="cs">Senior · Mid · Junior</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="grade-donut"></canvas></div>
+      <div style="margin-top:.5rem">
+        ${[['Senior',d.senior_n,'#1088A8'],['Mid',d.mid_n,'#F8D000'],['Junior',d.junior_n,'#E05A1E']].map(([l,n,c])=>`
+        <div style="display:flex;align-items:center;gap:.4rem;padding:.12rem 0">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+          <span style="flex:1;font-size:.69rem;font-weight:600;color:var(--ink2)">${l}</span>
+          <span style="font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;color:var(--ink)">${n}</span>
+          <span style="font-size:.65rem;color:var(--sl)">${pct(n,d.n)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Contract Type</div><div class="cs">Permanent vs Fixed Term</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="contract-donut"></canvas></div>
+      <div style="margin-top:.5rem">
+        ${[[`Permanent`,d.perm_n,'#1a8a5a'],[`Fixed Term`,d.ft_n,'#c0392b'],[`Other`,d.n-d.perm_n-d.ft_n,'#8ab5c2']].filter(x=>x[1]>0).map(([l,n,c])=>`
+        <div style="display:flex;align-items:center;gap:.4rem;padding:.12rem 0">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+          <span style="flex:1;font-size:.69rem;font-weight:600;color:var(--ink2)">${l}</span>
+          <span style="font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;color:var(--ink)">${n}</span>
+          <span style="font-size:.65rem;color:var(--sl)">${pct(n,d.n)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Tenure Distribution</div><div class="cs">Length of service bands</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="tenure-bar"></canvas></div>
+      <div style="margin-top:.4rem;display:flex;flex-wrap:wrap;gap:.3rem">
+        ${TORD.map((b,i)=>`<span style="font-size:.62rem;color:var(--sl)"><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${TCOL[i]};margin-right:2px;vertical-align:middle"></span>${b}: ${d.tenure&&d.tenure[b]||0}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // GRADE PYRAMID
+  html+=`<div class="g21">
+    <div class="card">
+      <div class="ct">Full Grade Pyramid</div><div class="cs">All grades in ${name} — lower = more senior</div>
+      <div style="padding:.2rem 0">
+        ${gradeEntries.map(e=>{
+          const cat=getCat(e.g);
+          const col=CAT_COL[cat]||'#8ab5c2';
+          const w=Math.max(4,(e.n/maxGrade*75));
+          return `<div class="pyr-row">
+            <div class="pyr-label">${e.g}</div>
+            <div style="flex:1;display:flex;align-items:center">
+              <div class="pyr-bar" style="width:${w}%;background:${col}">
+                ${w>=10?`<span class="pyr-n">${e.n}</span>`:''}
+              </div>
+              ${w<10?`<span class="pyr-ext" style="color:${col}">${e.n}</span>`:''}
+            </div>
+            <div class="pyr-pct">${e.n} · ${pct(e.n,d.n)}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.9rem">
+      <!-- NET FLOW -->
+      <div class="card">
+        <div class="ct">Workforce Flow</div><div class="cs">Hires vs exits · CSD-based</div>
+        <div class="flow-row">
+          <div class="flow-box"><div class="flow-v" style="color:var(--teal)">${d.hire_12m}</div><div class="flow-l">Hires 12m</div></div>
+          <div class="flow-box"><div class="flow-v" style="color:var(--dg)">${d.exits_n}</div><div class="flow-l">Exits</div></div>
+          <div class="flow-box" style="border-color:${netCol}"><div class="flow-v" style="color:${netCol}">${d.net_flow>=0?'+':''}${d.net_flow}</div><div class="flow-l">Net Flow</div></div>
+        </div>
+        ${hireGrades.length?`
+        <div class="slb">Entry grades (12m hires)</div>
+        ${hireGrades.map(([g,n])=>{
+          const maxH=Math.max(...hireGrades.map(x=>x[1]));
+          return `<div class="prow"><div class="plabel" style="width:90px">${g}</div>
+            <div class="ptrack"><div class="pfill" style="width:${(n/maxH*100).toFixed(0)}%;background:var(--teal)"></div></div>
+            <div class="pval">${n}</div></div>`;
+        }).join('')}`:'<div style="font-size:.72rem;color:var(--mi);text-align:center;padding:.75rem 0">No hires in 12-month window</div>'}
+      </div>
+      <!-- MOBILITY -->
+      <div class="card">
+        <div class="ct">Mobility</div><div class="cs">Grade changes in mobility data</div>
+        <div style="display:flex;gap:.6rem">
+          <div class="flow-box" style="border-color:var(--ok)"><div class="flow-v" style="color:var(--ok)">${d.mob_up}</div><div class="flow-l">Upward</div></div>
+          <div class="flow-box" style="border-color:var(--dg)"><div class="flow-v" style="color:var(--dg)">${d.mob_dn}</div><div class="flow-l">Downward</div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // COUNTRY COMPARISON TABLE (region view only)
+  if(type==='region' && cEntries.length>1){
+    html+=`<div class="card" style="margin-bottom:.9rem">
+      <div class="ct">Country Comparison</div>
+      <div class="cs">All countries in ${name} · click a row to drill down</div>
+      <table class="dtable">
+        <thead><tr>
+          <th>Country</th><th class="n">N</th><th class="n">Senior %</th><th class="n">Perm %</th><th class="n">FT %</th>
+          <th class="n">Exit Rate</th><th class="n">Hire Rate</th><th class="n">Net Flow</th><th class="n">Mob ↑</th>
+        </tr></thead>
+        <tbody>
+          ${cEntries.map(([cn,cd])=>{
+            const srC=cd.sr_pct>=28?'color:var(--ok)':cd.sr_pct<10?'color:var(--dg)':'';
+            const ftC=cd.ft_pct>=90?'color:var(--dg);font-weight:800':cd.ft_pct>=70?'color:var(--wn)':'';
+            const exC=cd.exit_rate>=40?'color:var(--dg);font-weight:800':cd.exit_rate>=20?'color:var(--wn)':'';
+            const nfC=cd.net_flow>=0?'color:var(--ok)':'color:var(--dg)';
+            return `<tr onclick="showCountry('${rkey}','${cn.replace(/'/g,"\\'")}')" style="cursor:pointer">
+              <td style="font-weight:600">${cn}</td>
+              <td class="n">${cd.n}</td>
+              <td class="n" style="${srC}">${cd.sr_pct}%</td>
+              <td class="n" style="${cd.perm_pct<10?'color:var(--dg)':''}">${cd.perm_pct}%</td>
+              <td class="n" style="${ftC}">${cd.ft_pct}%</td>
+              <td class="n" style="${exC}">${cd.exit_rate}%</td>
+              <td class="n">${cd.hire_rate_12m}%</td>
+              <td class="n" style="${nfC}">${cd.net_flow>=0?'+':''}${cd.net_flow}</td>
+              <td class="n" style="color:var(--ok)">${cd.mob_up}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+
+  // Inject demographics section
+  // For region view: aggregate age_grade from all countries (region-level object only has age_totals)
+  let demoData = type==='country'
+    ? (DEMO[rkey]&&DEMO[rkey].countries&&DEMO[rkey].countries[name]||null)
+    : (DEMO[rkey]||null);
+  if(demoData && !demoData.age_grade && demoData.countries){
+    const agg={};
+    Object.values(demoData.countries).forEach(cd=>{
+      Object.entries(cd.age_grade||{}).forEach(([grade,ages])=>{
+        if(!agg[grade]) agg[grade]={};
+        Object.entries(ages).forEach(([age,n])=>{ agg[grade][age]=(agg[grade][age]||0)+n; });
+      });
+    });
+    demoData = Object.assign({}, demoData, {age_grade: agg});
+  }
+  const demoN = demoData ? demoData.total : 0;
+
+  if(demoData){
+    html+=`
+    <div class="card" style="margin-bottom:.9rem">
+      <div class="ct">Demographics — Gender &amp; Age by Grade</div>
+      <div class="cs">Report 69 (30 Dec 2025) · ${type==='country'?name:name+' region'} · ${demoN} staff with demographic data</div>
+      <div class="demo-tabs">
+        <div class="demo-tab active" onclick="switchDemoTab(this,'dp-gg')">Gender × Grade</div>
+        <div class="demo-tab" onclick="switchDemoTab(this,'dp-ag')">Age × Grade</div>
+        <div class="demo-tab" onclick="switchDemoTab(this,'dp-ov')">Overview</div>
+      </div>
+      <div class="demo-panel active" id="dp-gg">
+        <div class="demo-note">Female (pink) and Male (teal) count within each grade · labels show count</div>
+        <div id="demo-gg-bars"></div>
+      </div>
+      <div class="demo-panel" id="dp-ag">
+        <div class="demo-note">Age band distribution within each grade — stacked bars</div>
+        <div class="chart-wrap" style="height:${Object.keys(demoData.age_grade||{}).length*32+40}px"><canvas id="demo-ag-chart"></canvas></div>
+      </div>
+      <div class="demo-panel" id="dp-ov">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem">
+          <div><div class="slb">Gender split</div><div id="demo-ov-gender"></div></div>
+          <div><div class="slb">Age distribution</div><div id="demo-ov-age"></div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  document.getElementById('detail-panel').innerHTML=html;
+
+  // Store demo data for panel builders
+  window._currentDemoData = demoData || null;
+  // Auto-build the default Gender×Grade panel if data available
+  if(demoData){ setTimeout(()=>buildGenderGrade(demoData),0); }
+
+  // ── CHARTS ────────────────────────────────────────────────────
+  Chart.defaults.font.family="'Nunito Sans',sans-serif";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color='#4a7a8a';
+  Chart.defaults.plugins.legend.display=false;
+  Chart.defaults.plugins.tooltip.backgroundColor='#0a6880';
+  Chart.defaults.plugins.tooltip.cornerRadius=6;
+  Chart.defaults.plugins.tooltip.padding=8;
+
+  const dlBase={color:'#fff',textAlign:'center',font:{weight:'bold',size:11,family:"'Nunito',sans-serif"},formatter:(v,ctx)=>v>0?`${v}\n${pct(v,d.n)}%`:'',display:ctx=>ctx.dataset.data[ctx.dataIndex]>0};
+
+  // Grade donut
+  charts['grade-donut']=new Chart(document.getElementById('grade-donut'),{
+    type:'doughnut',
+    data:{labels:['Senior','Mid','Junior'],datasets:[{data:[d.senior_n,d.mid_n,d.junior_n],backgroundColor:['#1088A8','#F8D000','#E05A1E'],borderWidth:3,borderColor:'#fff'}]},
+    options:{cutout:'65%',animation:{duration:500},plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${pct(c.raw,d.n)}%)`}},datalabels:dlBase}}
+  });
+
+  // Contract donut
+  const cArr=[{l:'Permanent',n:d.perm_n,c:'#1a8a5a'},{l:'Fixed Term',n:d.ft_n,c:'#c0392b'},{l:'Other',n:d.n-d.perm_n-d.ft_n,c:'#8ab5c2'}].filter(x=>x.n>0);
+  charts['contract-donut']=new Chart(document.getElementById('contract-donut'),{
+    type:'doughnut',
+    data:{labels:cArr.map(x=>x.l),datasets:[{data:cArr.map(x=>x.n),backgroundColor:cArr.map(x=>x.c),borderWidth:3,borderColor:'#fff'}]},
+    options:{cutout:'65%',animation:{duration:500},plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${pct(c.raw,d.n)}%)`}},datalabels:dlBase}}
+  });
+
+  // Tenure bar
+  charts['tenure-bar']=new Chart(document.getElementById('tenure-bar'),{
+    type:'bar',
+    data:{labels:TORD,datasets:[{data:tenureEntries.map(e=>e.n),backgroundColor:TCOL,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:16}},
+      scales:{y:{display:false,grid:{display:false}},x:{grid:{display:false},border:{display:false},ticks:{font:{size:9}}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.raw} staff (${pct(c.raw,d.n)}%)`}},
+        datalabels:{anchor:'end',align:'top',offset:-2,color:'var(--ink2)',font:{weight:'bold',size:10},formatter:v=>v>0?v:''}}
+    }
+  });
+}
+
+
+// ── DEMO TAB TOGGLE ───────────────────────────────────────────────
+function switchDemoTab(btn, panelId){
+  btn.closest('.demo-tabs').querySelectorAll('.demo-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const card = btn.closest('.card');
+  card.querySelectorAll('.demo-panel').forEach(p=>p.classList.remove('active'));
+  const target = card.querySelector('#'+panelId);
+  if(target){ target.classList.add('active'); buildDemoPanel(panelId); }
+}
+
+// ── DEMO PANEL BUILDERS ───────────────────────────────────────────
+let demoDataCache = null;
+const AGE_BANDS  = ['19-25','26-35','36-45','46-60','60+'];
+const AGE_COLORS = ['#c0392b','#e67e22','#1088A8','#27ae60','#8e44ad'];
+const GRADE_ORDER_D = ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10'];
+const F_COL = '#E91E8C';
+const M_COL = '#1088A8';
+
+function getDemoData(){
+  // Re-read from the current rendered profile's demoData variable
+  // We store it on window when rendering
+  return window._currentDemoData || null;
+}
+
+function buildDemoPanel(panelId){
+  const d = window._currentDemoData;
+  if(!d) return;
+
+  if(panelId==='dp-gg') buildGenderGrade(d);
+  if(panelId==='dp-ag') buildAgeGrade(d);
+  if(panelId==='dp-ov') buildDemoOverview(d);
+}
+
+function buildGenderGrade(d){
+  const el = document.getElementById('demo-gg-bars');
+  if(!el || !d.gender_grade) return;
+  const grades = GRADE_ORDER_D.filter(g => d.gender_grade[g]);
+  const maxN = Math.max(...grades.map(g=>(d.gender_grade[g].f||0)+(d.gender_grade[g].m||0)));
+  el.innerHTML = grades.map(g => {
+    const gd = d.gender_grade[g];
+    const f = gd.f||0, m = gd.m||0, tot = f+m;
+    const fp = tot ? (f/tot*100).toFixed(1) : 0;
+    const mp = tot ? (m/tot*100).toFixed(1) : 0;
+    const barW = (tot/maxN*100).toFixed(1);
+    const isSenior = ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(g);
+    return `<div style="display:grid;grid-template-columns:80px 1fr 52px;align-items:center;gap:.5rem;padding:.22rem 0">
+      <div style="font-size:.7rem;font-weight:${isSenior?'700':'500'};color:${isSenior?'var(--teal-dark)':'var(--ink2)'};text-align:right">${g}</div>
+      <div style="height:20px;border-radius:4px;overflow:hidden;display:flex;background:var(--fog)" title="${g}: F=${f}, M=${m}">
+        <div style="width:${barW}%;display:flex;overflow:hidden;border-radius:4px;height:100%">
+          ${f>0?`<div style="width:${fp}%;background:${F_COL};display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff">${fp>=10?f:''}</div>`:''}
+          ${m>0?`<div style="width:${mp}%;background:${M_COL};display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#fff">${mp>=10?m:''}</div>`:''}
+        </div>
+      </div>
+      <div style="font-size:.67rem;color:var(--slate);font-weight:700;text-align:right">${tot}</div>
+    </div>`;
+  }).join('') +
+  `<div style="display:flex;gap:1rem;margin-top:.4rem;font-size:.66rem;color:var(--slate)">
+    <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${F_COL};margin-right:3px;vertical-align:middle"></span>Female</span>
+    <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${M_COL};margin-right:3px;vertical-align:middle"></span>Male</span>
+  </div>`;
+}
+
+function buildAgeGrade(d){
+  const canvasEl = document.getElementById('demo-ag-chart');
+  if(!canvasEl || !d.age_grade) return;
+  if(charts['demo-ag']){ charts['demo-ag'].destroy(); delete charts['demo-ag']; }
+
+  const grades = GRADE_ORDER_D.filter(g => d.age_grade[g]);
+  const datasets = AGE_BANDS.map((age,i) => ({
+    label: age,
+    data: grades.map(g => (d.age_grade[g]&&d.age_grade[g][age]) || 0),
+    backgroundColor: AGE_COLORS[i],
+    borderWidth: 0,
+    borderRadius: 2,
+  })).filter(ds => ds.data.some(v=>v>0));
+
+  charts['demo-ag'] = new Chart(canvasEl, {
+    type: 'bar',
+    data: { labels: grades, datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked:true, grid:{color:'rgba(16,136,168,.07)'}, border:{display:false},
+             ticks:{stepSize:1, font:{size:9}} },
+        y: { stacked:true, grid:{display:false}, border:{display:false},
+             ticks:{font:{size:9}, color: ctx => {
+               const lbl = grades[ctx.index];
+               return ['Grade CEO','Grade Exec','Grade Head','Grade 1','Grade 2'].includes(lbl) ? '#0a6880' : '#4a7a8a';
+             }}}
+      },
+      plugins: {
+        legend: { display:true, position:'bottom',
+          labels:{font:{size:9,family:"'Nunito Sans',sans-serif"}, boxWidth:10, padding:8} },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw}` } },
+        datalabels: {
+          color:'#fff', font:{weight:'bold',size:9},
+          formatter: v => v>0?v:'',
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0
+        }
+      },
+      layout: { padding:{top:4,right:8} }
+    }
+  });
+}
+
+function buildDemoOverview(d){
+  // Gender overview
+  const govEl = document.getElementById('demo-ov-gender');
+  if(govEl){
+    const tot = (d.female||0)+(d.male||0);
+    const fp = tot ? (d.female/tot*100).toFixed(1) : 0;
+    const mp = tot ? (d.male/tot*100).toFixed(1) : 0;
+    govEl.innerHTML = `
+    <div style="height:22px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:.5rem">
+      <div style="width:${fp}%;background:${F_COL};display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;color:#fff">${fp}%</div>
+      <div style="width:${mp}%;background:${M_COL};display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;color:#fff">${mp}%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.69rem;color:var(--slate)">
+      <span style="color:${F_COL};font-weight:700">Female: ${d.female||0} (${fp}%)</span>
+      <span style="color:${M_COL};font-weight:700">Male: ${d.male||0} (${mp}%)</span>
+    </div>`;
+  }
+  // Age overview
+  const aovEl = document.getElementById('demo-ov-age');
+  if(aovEl && d.age_totals){
+    const totAge = Object.values(d.age_totals).reduce((a,b)=>a+b,0);
+    const maxAge = Math.max(...Object.values(d.age_totals));
+    aovEl.innerHTML = AGE_BANDS.filter(b=>d.age_totals[b]).map((b,i)=>{
+      const n = d.age_totals[b]||0;
+      const w = (n/maxAge*100).toFixed(0);
+      const pct = totAge ? (n/totAge*100).toFixed(0) : 0;
+      return `<div style="display:grid;grid-template-columns:55px 1fr 50px;align-items:center;gap:.4rem;padding:.2rem 0">
+        <div style="font-size:.68rem;font-weight:600;color:var(--ink2)">${b}</div>
+        <div style="height:14px;background:var(--fog);border-radius:3px;overflow:hidden">
+          <div style="width:${w}%;height:100%;background:${AGE_COLORS[i]};border-radius:3px"></div>
+        </div>
+        <div style="font-size:.67rem;font-weight:700;color:var(--slate);text-align:right">${n} (${pct}%)</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+
+// ── SELECT REGION ─────────────────────────────────────────────────
+function selectRegion(rkey,btn){
+  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentRegion=rkey;
+  currentCountry=null;
+  buildCountryList(rkey);
+  showRegion(rkey);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+selectRegion('eca',document.querySelector('.rbtn.active'));
+</script>
+</body>
+</html>
