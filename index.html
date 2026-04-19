@@ -18,7 +18,7 @@
   // REPLACE THESE VALUES with your Firebase project config
   // (Firebase Console → Project Settings → Your apps → Web app)
   // ─────────────────────────────────────────────────
- const firebaseConfig = {
+  const firebaseConfig = {
   apiKey: "AIzaSyAzdJrtQshBDsNzRH3YqtBSMm0g45W0RMU",
   authDomain: "tf-talent-hub.firebaseapp.com",
   databaseURL: "https://tf-talent-hub-default-rtdb.europe-west1.firebasedatabase.app",
@@ -132,6 +132,22 @@
   function showError(msg) {
     errorMsg.textContent       = msg;
     errorMsg.style.display     = "block";
+  }
+
+  // ── Theme toggle ──
+  window.toggleTheme = function() {
+    const isDark = document.body.classList.toggle('dark-mode');
+    document.getElementById('theme-toggle-btn').textContent = isDark ? '🌙' : '☀️';
+    localStorage.setItem('tf_theme', isDark ? 'dark' : 'light');
+  };
+
+  // Apply saved theme on load
+  if (localStorage.getItem('tf_theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.textContent = '🌙';
+    });
   }
 
   function showLoading(msg) {
@@ -497,6 +513,44 @@
     color: #888;
   }
 
+  /* Featured/primary card */
+  .dash-card.featured {
+    border-color: var(--teal);
+    background: var(--teal-pale);
+    grid-column: 1 / -1;
+  }
+  .dash-card.featured::before { transform: scaleX(1); }
+  .card-tag.strategy { background: var(--teal-light); color: var(--teal-dark); }
+  .card-tag-primary {
+    background: var(--yellow); color: var(--teal-dark);
+    font-size: 0.65rem; font-weight: 800; padding: 0.18rem 0.55rem;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  /* Dark mode */
+  body.dark-mode {
+    --fog: #0f1f24;
+    --white: #162830;
+    --border: #1e4a5a;
+    --teal-pale: #0d2b35;
+    --text: #c8dde3;
+    --ink: #e0eff3;
+    --slate: #6aacbc;
+  }
+  body.dark-mode .hub-footer { color: var(--slate); }
+  body.dark-mode .login-card { background: #162830; }
+  body.dark-mode .login-card h1 { color: var(--ink); }
+
+  /* Theme toggle btn */
+  #theme-toggle-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 0.3rem 0.6rem;
+    font-size: 0.85rem; cursor: pointer; line-height: 1;
+    transition: background 0.2s;
+  }
+  #theme-toggle-btn:hover { background: rgba(255,255,255,0.2); }
+
   /* Hub footer */
   .hub-footer {
     text-align: center;
@@ -604,6 +658,7 @@
     <div class="topbar-right">
       <img id="user-avatar" src="" alt="User avatar">
       <span id="user-email"></span>
+      <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark mode">☀️</button>
       <button id="sign-out-btn">Sign out</button>
     </div>
   </nav>
@@ -611,11 +666,25 @@
   <!-- Main content -->
   <main class="hub-main">
     <div class="hub-header">
-      <h2>Workforce Dashboards</h2>
-      <p>Select a dashboard below to explore Tearfund people data. New dashboards will appear here as they are published.</p>
+      <h2>TF Talent Hub</h2>
+      <p>Select a dashboard below to explore Tearfund people data and strategy. New dashboards will appear here as they are published.</p>
     </div>
 
     <div class="dash-grid">
+
+      <!-- Dashboard 0: Talent Strategy — PRIMARY -->
+      <div class="dash-card featured" onclick="openDashboard('talent_strategy.html', 'Talent Strategy 2026–2029')">
+        <div class="card-icon">📋</div>
+        <div>
+          <div class="card-meta">
+            <span class="card-tag strategy">Strategy</span>
+            <span class="card-tag-primary">Primary</span>
+          </div>
+          <h3>Talent Strategy 2026–2029</h3>
+          <p>The integrated four-pillar talent strategy — workforce planning, acquisition, management and development — with editable content and team commenting.</p>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
 
       <!-- Dashboard 1: Regional -->
       <div class="dash-card" onclick="openDashboard('regional_dashboard.html', 'Regional Workforce Profiles')">
