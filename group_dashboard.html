@@ -7,6 +7,121 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, deleteDoc, doc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+  apiKey: "AIzaSyAzdJrtQshBDsNzRH3YqtBSMm0g45W0RMU",
+  authDomain: "tf-talent-hub.firebaseapp.com",
+  databaseURL: "https://tf-talent-hub-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tf-talent-hub",
+  storageBucket: "tf-talent-hub.firebasestorage.app",
+  messagingSenderId: "422929352376",
+  appId: "1:422929352376:web:d550d34a70364bf7d9564d"
+};
+
+  const PAGE_ID   = "group_dashboard";
+  const app       = initializeApp(firebaseConfig);
+  const auth      = getAuth(app);
+  const db        = getFirestore(app);
+  let currentUser = null;
+  let selectedText = "";
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+    currentUser = user;
+    document.getElementById("gd-user-email").textContent = user.email;
+    if (user.photoURL) {
+      const av = document.getElementById("gd-user-avatar");
+      av.src = user.photoURL; av.style.display = "block";
+    }
+    loadComments();
+  });
+
+  document.addEventListener('mouseup', () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.toString().trim().length < 3) return;
+    selectedText = sel.toString().trim().slice(0, 300);
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    const prompt = document.getElementById('gd-comment-prompt');
+    prompt.style.top  = (rect.bottom + window.scrollY + 8) + 'px';
+    prompt.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
+    prompt.style.display = 'block';
+    document.getElementById('gd-prompt-preview').textContent = '"' + selectedText.slice(0,80) + (selectedText.length>80?'…':'') + '"';
+  });
+  window.addEventListener('scroll', () => { document.getElementById('gd-comment-prompt').style.display = 'none'; });
+
+  window.gdDismissPrompt = () => { document.getElementById('gd-comment-prompt').style.display = 'none'; selectedText = ''; };
+
+  window.gdOpenCommentPanel = () => {
+    document.getElementById('gd-comment-prompt').style.display = 'none';
+    document.getElementById('gd-comment-panel').classList.add('open');
+    document.getElementById('gd-comment-quote').textContent = selectedText.slice(0,150) + (selectedText.length>150?'…':'');
+    document.getElementById('gd-comment-input').focus();
+  };
+
+  window.gdCloseCommentPanel = () => {
+    document.getElementById('gd-comment-panel').classList.remove('open');
+    document.getElementById('gd-comment-input').value = '';
+    selectedText = '';
+  };
+
+  window.gdSubmitComment = async () => {
+    const text = document.getElementById('gd-comment-input').value.trim();
+    if (!text || !currentUser) return;
+    const btn = document.getElementById('gd-submit-btn');
+    btn.disabled = true; btn.textContent = 'Posting…';
+    try {
+      await addDoc(collection(db, 'comments'), {
+        page: PAGE_ID, quote: selectedText, comment: text,
+        author: currentUser.email,
+        authorName: currentUser.displayName || currentUser.email.split('@')[0],
+        timestamp: serverTimestamp()
+      });
+      gdCloseCommentPanel(); loadComments();
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Post Comment'; }
+  };
+
+  window.loadComments = async () => {
+    const list = document.getElementById('gd-comments-list');
+    list.innerHTML = '<div style="padding:1rem;font-size:.82rem;color:#4a7a8a;">Loading…</div>';
+    try {
+      const q = query(collection(db,'comments'), where('page','==',PAGE_ID), orderBy('timestamp','desc'));
+      const snap = await getDocs(q);
+      document.getElementById('gd-comment-count').textContent = snap.size || '0';
+      if (snap.empty) { list.innerHTML = '<div style="padding:1.5rem 1rem;font-size:.82rem;color:#4a7a8a;text-align:center;">No comments yet. Select any text to add one.</div>'; return; }
+      list.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const ts = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Just now';
+        const div = document.createElement('div');
+        div.className = 'gd-comment-item';
+        div.innerHTML = `<div class="gd-comment-quote">"${(d.quote||'').slice(0,100)}${(d.quote||'').length>100?'…':''}"</div>
+          <div class="gd-comment-text">${d.comment}</div>
+          <div class="gd-comment-meta"><span class="gd-comment-author">${d.authorName}</span><span class="gd-comment-time">${ts}</span>
+          ${(currentUser && currentUser.email === d.author) ? `<button class="gd-comment-delete" onclick="gdDeleteComment('${docSnap.id}')">✕</button>` : ''}</div>`;
+        list.appendChild(div);
+      });
+    } catch(e) { list.innerHTML = '<div style="padding:1rem;font-size:.82rem;color:#c0392b;">Could not load comments.</div>'; }
+  };
+
+  window.gdDeleteComment = async (id) => {
+    if (!confirm('Delete this comment?')) return;
+    try { await deleteDoc(doc(db,'comments',id)); loadComments(); } catch(e) { alert('Delete failed.'); }
+  };
+
+  window.gdToggleComments = () => {
+    const s = document.getElementById('gd-comments-sidebar');
+    s.classList.toggle('open');
+    if (s.classList.contains('open')) loadComments();
+  };
+</script>
 <style>
 :root{
   --teal:#1088A8;--td:#0a6880;--tl:#d0edf4;--tp:#eaf6fa;
@@ -22,6 +137,53 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--fog);color:var(--ink)
 
 /* TOPBAR */
 .topbar{background:var(--teal);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(16,136,168,.25)}
+
+/* Dark mode */
+body.dark-mode{--fog:#0f1f24;--wh:#162830;--cl:#1e4a5a;--tp:#0d2b35;--tl:#0f2d38;--ink:#e0eff3;--ink2:#b0cdd5;--sl:#6aacbc}
+
+/* Theme toggle */
+.gd-theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .6rem;font-size:.85rem;cursor:pointer;line-height:1;transition:background .2s}
+.gd-theme-btn:hover{background:rgba(255,255,255,.2)}
+
+/* Hub back btn */
+.hub-back-btn{display:flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:.28rem .85rem;border-radius:20px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:'Nunito Sans',sans-serif;text-decoration:none;transition:background .2s}
+.hub-back-btn:hover{background:rgba(255,255,255,.22)}
+
+/* Comments btn */
+.gd-comments-btn{display:flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:.28rem .85rem;border-radius:20px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:'Nunito Sans',sans-serif;transition:background .2s}
+.gd-comments-btn:hover{background:rgba(255,255,255,.2)}
+.gd-badge{background:var(--y);color:var(--td);font-size:.63rem;font-weight:800;padding:1px 6px;border-radius:10px}
+
+/* Comment prompt */
+.gd-prompt{display:none;position:absolute;z-index:500;background:#fff;border:1px solid #cce5ed;border-radius:10px;padding:.8rem 1rem;box-shadow:0 8px 24px rgba(16,136,168,.18);max-width:250px}
+.gd-prompt span{font-size:.75rem;color:#4a7a8a;font-style:italic;margin-bottom:.6rem;display:block}
+.gd-prompt-btns{display:flex;gap:.5rem}
+.gd-pbtn{font-size:.75rem;font-weight:700;font-family:'Nunito Sans',sans-serif;border:none;border-radius:6px;padding:.35rem .75rem;cursor:pointer}
+.gd-pbtn-c{background:#1088A8;color:#fff}
+.gd-pbtn-d{background:#f0f8fb;color:#4a7a8a}
+
+/* Comment panel */
+.gd-panel{position:fixed;top:0;right:-380px;width:360px;height:100vh;background:#fff;border-left:1px solid #cce5ed;box-shadow:-4px 0 24px rgba(16,136,168,.12);z-index:400;display:flex;flex-direction:column;transition:right .3s ease}
+.gd-panel.open{right:0}
+.gd-panel-hdr{background:#1088A8;padding:1rem 1.2rem;display:flex;align-items:center;justify-content:space-between}
+.gd-panel-hdr h3{font-family:'Nunito',sans-serif;color:#fff;font-size:.9rem;margin:0}
+.gd-panel-x{background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2rem;cursor:pointer}
+.gd-panel-x:hover{color:#fff}
+.gd-panel-body{flex:1;overflow-y:auto;padding:1.2rem}
+.gd-cquote{background:#eaf6fa;border-left:3px solid #1088A8;padding:.6rem .8rem;border-radius:0 6px 6px 0;font-size:.78rem;color:#4a7a8a;font-style:italic;margin-bottom:1rem}
+#gd-comment-input{width:100%;border:1px solid #cce5ed;border-radius:8px;padding:.75rem;font-family:'Nunito Sans',sans-serif;font-size:.85rem;resize:vertical;min-height:100px;background:#f0f8fb}
+#gd-comment-input:focus{outline:none;border-color:#1088A8}
+#gd-submit-btn{width:100%;margin-top:.75rem;background:#1088A8;color:#fff;border:none;border-radius:8px;padding:.7rem;font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer}
+#gd-submit-btn:hover{background:#0a6880}
+#gd-submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.gd-comment-item{background:#f0f8fb;border:1px solid #cce5ed;border-radius:8px;padding:.9rem;margin-bottom:.75rem}
+.gd-comment-quote{font-size:.75rem;color:#4a7a8a;font-style:italic;border-left:3px solid #d0edf4;padding-left:.6rem;margin-bottom:.5rem}
+.gd-comment-text{font-size:.85rem;color:#0d2b35;margin-bottom:.5rem;line-height:1.5}
+.gd-comment-meta{display:flex;align-items:center;gap:.75rem;font-size:.72rem}
+.gd-comment-author{font-weight:700;color:#0a6880}
+.gd-comment-time{color:#4a7a8a}
+.gd-comment-delete{margin-left:auto;background:none;border:none;color:#c0392b;cursor:pointer;font-size:.75rem;opacity:.6}
+.gd-comment-delete:hover{opacity:1}
 .logo-badge{background:var(--y);border-radius:5px;padding:3px 10px;flex-shrink:0}
 .logo-text{font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;color:var(--teal)}
 .topbar-center{flex:1;display:flex;align-items:center;gap:.6rem;margin-left:.8rem}
@@ -178,17 +340,19 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--fog);color:var(--ink)
 <div style="height:4px;background:var(--y)"></div>
 
 <nav class="topbar">
-  <div style="display:flex;align-items:center;gap:.5rem">
+  <div style="display:flex;align-items:center;gap:.6rem">
+    <a href="index.html" class="hub-back-btn">← Hub</a>
     <div class="logo-badge"><span class="logo-text">tearfund</span></div>
     <div class="topbar-center">
-      <span class="topbar-title">Group Workforce Dashboard — Talent Analytics</span>
-      <span style="font-size:.68rem;color:rgba(255,255,255,.55)">· People & Culture · December 2025</span>
+      <span class="topbar-title">Group Workforce Dashboard</span>
+      <span style="font-size:.68rem;color:rgba(255,255,255,.55)">· People &amp; Culture · December 2025</span>
     </div>
   </div>
   <div class="topbar-right">
-    <span class="tbadge">838 staff</span>
-    <span class="tbadge">5 groups</span>
-    <span class="tbadge">45 countries</span>
+    <img id="gd-user-avatar" src="" style="display:none;width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover">
+    <span id="gd-user-email" style="font-size:.72rem;color:rgba(255,255,255,.75);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button class="gd-theme-btn" id="gd-theme-btn" onclick="gdToggleTheme()">☀️</button>
+    <button class="gd-comments-btn" onclick="gdToggleComments()">💬 Comments <span class="gd-badge" id="gd-comment-count">—</span></button>
   </div>
 </nav>
 
@@ -1480,6 +1644,51 @@ function buildGroupDemoOV(gk, d){
 
 // ── INIT ──────────────────────────────────────────────────────────
 buildOrgPanel();
+
+// ── THEME TOGGLE ──────────────────────────────────────────────────
+function gdToggleTheme(){
+  const isDark = document.body.classList.toggle('dark-mode');
+  document.getElementById('gd-theme-btn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('tf_theme', isDark ? 'dark' : 'light');
+}
+if(localStorage.getItem('tf_theme')==='dark'){
+  document.body.classList.add('dark-mode');
+  document.getElementById('gd-theme-btn').textContent='🌙';
+}
 </script>
+
+<!-- Comment prompt -->
+<div class="gd-prompt" id="gd-comment-prompt">
+  <span id="gd-prompt-preview"></span>
+  <div class="gd-prompt-btns">
+    <button class="gd-pbtn gd-pbtn-c" onclick="gdOpenCommentPanel()">💬 Add Comment</button>
+    <button class="gd-pbtn gd-pbtn-d" onclick="gdDismissPrompt()">Dismiss</button>
+  </div>
+</div>
+
+<!-- Add comment panel -->
+<div class="gd-panel" id="gd-comment-panel">
+  <div class="gd-panel-hdr">
+    <h3>Add Comment</h3>
+    <button class="gd-panel-x" onclick="gdCloseCommentPanel()">✕</button>
+  </div>
+  <div class="gd-panel-body">
+    <div class="gd-cquote" id="gd-comment-quote"></div>
+    <textarea id="gd-comment-input" placeholder="Type your comment…"></textarea>
+    <button id="gd-submit-btn" onclick="gdSubmitComment()">Post Comment</button>
+  </div>
+</div>
+
+<!-- View all comments sidebar -->
+<div class="gd-panel" id="gd-comments-sidebar">
+  <div class="gd-panel-hdr">
+    <h3>Comments <span class="gd-badge" id="gd-comment-count" style="margin-left:6px">—</span></h3>
+    <button class="gd-panel-x" onclick="gdToggleComments()">✕</button>
+  </div>
+  <div class="gd-panel-body">
+    <div id="gd-comments-list"></div>
+  </div>
+</div>
+
 </body>
 </html>
