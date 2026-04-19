@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tearfund | Talent Strategy 2026–2029</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, deleteDoc, doc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── PASTE YOUR FIREBASE CONFIG HERE ──
+  const firebaseConfig = {
+  apiKey: "AIzaSyAzdJrtQshBDsNzRH3YqtBSMm0g45W0RMU",
+  authDomain: "tf-talent-hub.firebaseapp.com",
+  databaseURL: "https://tf-talent-hub-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tf-talent-hub",
+  storageBucket: "tf-talent-hub.firebasestorage.app",
+  messagingSenderId: "422929352376",
+  appId: "1:422929352376:web:d550d34a70364bf7d9564d"
+};
+
+  // ── EDITOR EMAIL — only this user can edit content ──
+  const EDITOR_EMAIL = "prisca.mwithi@tearfund.org";
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  let currentUser  = null;
+  let isEditor     = false;
+  let selectedText = "";
+  let selectedRange = null;
+
+  // ── AUTH STATE ──
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      // Redirect to hub if not signed in
+      window.location.href = "index.html";
+      return;
+    }
+    currentUser = user;
+    isEditor    = user.email.toLowerCase() === EDITOR_EMAIL.toLowerCase();
+
+    document.getElementById("user-email").textContent = user.email;
+    if (user.photoURL) {
+      const av = document.getElementById("user-avatar");
+      av.src = user.photoURL;
+      av.style.display = "block";
+    }
+
+    // Show/hide edit controls
+    if (isEditor) {
+      document.getElementById("edit-toggle-btn").style.display = "flex";
+      document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
+    } else {
+      document.getElementById("edit-toggle-btn").style.display = "none";
+      document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
+    }
+
+    loadComments();
+  });
+
+  // ── EDIT MODE TOGGLE (editor only) ──
+  let editMode = false;
+  window.toggleEditMode = function() {
+    if (!isEditor) return;
+    editMode = !editMode;
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.setAttribute('contenteditable', editMode ? 'true' : 'false');
+      el.classList.toggle('edit-active', editMode);
+    });
+    const btn = document.getElementById("edit-toggle-btn");
+    btn.textContent = editMode ? "✓ Done Editing" : "✎ Edit";
+    btn.classList.toggle("editing", editMode);
+    document.getElementById("save-bar").style.display = editMode ? "flex" : "none";
+  };
+
+  // ── SAVE (editor only) ──
+  window.saveLocal = function() {
+    try {
+      const data = {};
+      document.querySelectorAll('[data-editable]').forEach((el, i) => {
+        data['field_' + i] = el.innerHTML;
+      });
+      localStorage.setItem('tf_talent_strategy_v2', JSON.stringify(data));
+      const msg = document.getElementById('saveMsg');
+      msg.style.display = 'flex';
+      setTimeout(() => msg.style.display = 'none', 2500);
+    } catch(e) { alert('Save failed: ' + e.message); }
+  };
+
+  window.loadLocal = function() {
+    try {
+      const saved = localStorage.getItem('tf_talent_strategy_v2');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      document.querySelectorAll('[data-editable]').forEach((el, i) => {
+        if (data['field_' + i]) el.innerHTML = data['field_' + i];
+      });
+    } catch(e) {}
+  };
+
+  window.exportContent = function() {
+    const sections = [];
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      const title = panel.querySelector('h1')?.textContent || panel.id;
+      sections.push('═══════════════════\n' + title.toUpperCase() + '\n═══════════════════\n\n' + panel.innerText);
+    });
+    const blob = new Blob([sections.join('\n\n\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'TF_Talent_Strategy_' + new Date().toISOString().slice(0,10) + '.txt';
+    a.click();
+  };
+
+  // ── COMMENTING SYSTEM ──
+
+  // Track text selection for commenting
+  document.addEventListener('mouseup', () => {
+    if (editMode) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.toString().trim().length < 3) return;
+    selectedText  = sel.toString().trim().slice(0, 300);
+    selectedRange = sel.getRangeAt(0);
+    showCommentPrompt();
+  });
+
+  function showCommentPrompt() {
+    const prompt = document.getElementById('comment-prompt');
+    const sel    = window.getSelection();
+    if (!sel.rangeCount) return;
+    const rect   = sel.getRangeAt(0).getBoundingClientRect();
+    prompt.style.top  = (rect.bottom + window.scrollY + 8) + 'px';
+    prompt.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
+    prompt.style.display = 'block';
+    document.getElementById('prompt-preview').textContent = '"' + selectedText.slice(0, 80) + (selectedText.length > 80 ? '…' : '') + '"';
+  }
+
+  window.dismissPrompt = function() {
+    document.getElementById('comment-prompt').style.display = 'none';
+    selectedText = "";
+  };
+
+  window.openCommentPanel = function() {
+    document.getElementById('comment-prompt').style.display = 'none';
+    document.getElementById('comment-panel').classList.add('open');
+    document.getElementById('comment-quote').textContent = selectedText.slice(0, 150) + (selectedText.length > 150 ? '…' : '');
+    document.getElementById('comment-input').focus();
+  };
+
+  window.closeCommentPanel = function() {
+    document.getElementById('comment-panel').classList.remove('open');
+    document.getElementById('comment-input').value = '';
+    document.getElementById('comment-quote').textContent = '';
+    selectedText = '';
+  };
+
+  window.submitComment = async function() {
+    const text = document.getElementById('comment-input').value.trim();
+    if (!text || !currentUser) return;
+    const btn = document.getElementById('submit-comment-btn');
+    btn.disabled = true;
+    btn.textContent = 'Posting…';
+    try {
+      await addDoc(collection(db, 'comments'), {
+        page:       'talent_strategy',
+        quote:      selectedText,
+        comment:    text,
+        author:     currentUser.email,
+        authorName: currentUser.displayName || currentUser.email.split('@')[0],
+        timestamp:  serverTimestamp()
+      });
+      closeCommentPanel();
+      loadComments();
+    } catch(e) {
+      alert('Failed to post comment: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Post Comment';
+    }
+  };
+
+  window.loadComments = async function() {
+    const list = document.getElementById('comments-list');
+    list.innerHTML = '<div class="comment-loading">Loading comments…</div>';
+    try {
+      const q    = query(collection(db, 'comments'), where('page','==','talent_strategy'), orderBy('timestamp','desc'));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        list.innerHTML = '<div class="comment-empty">No comments yet. Select any text on the page to add the first comment.</div>';
+        document.getElementById('comment-count').textContent = '0';
+        return;
+      }
+      document.getElementById('comment-count').textContent = snap.size;
+      list.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d   = docSnap.data();
+        const ts  = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Just now';
+        const div = document.createElement('div');
+        div.className = 'comment-item';
+        const canDelete = isEditor || (currentUser && currentUser.email === d.author);
+        div.innerHTML = `
+          <div class="comment-quote">"${(d.quote||'').slice(0,100)}${(d.quote||'').length>100?'…':''}"</div>
+          <div class="comment-text">${d.comment}</div>
+          <div class="comment-meta">
+            <span class="comment-author">${d.authorName}</span>
+            <span class="comment-time">${ts}</span>
+            ${canDelete ? `<button class="comment-delete" onclick="deleteComment('${docSnap.id}')">✕</button>` : ''}
+          </div>`;
+        list.appendChild(div);
+      });
+    } catch(e) {
+      list.innerHTML = '<div class="comment-empty">Could not load comments. Check Firebase config.</div>';
+    }
+  };
+
+  window.deleteComment = async function(id) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await deleteDoc(doc(db, 'comments', id));
+      loadComments();
+    } catch(e) { alert('Delete failed: ' + e.message); }
+  };
+
+  window.toggleCommentsPanel = function() {
+    const panel = document.getElementById('comments-sidebar');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) loadComments();
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.loadLocal();
+    // Close prompt on scroll
+    window.addEventListener('scroll', () => {
+      document.getElementById('comment-prompt').style.display = 'none';
+    });
+  });
+</script>
+
+<style>
+  :root {
+    --teal:       #1088A8;
+    --teal-dark:  #0a6880;
+    --teal-light: #d0edf4;
+    --teal-pale:  #eaf6fa;
+    --yellow:     #F8D000;
+    --yellow-dark:#d9b800;
+    --white:      #ffffff;
+    --ink:        #0d2b35;
+    --ink2:       #1e4a5a;
+    --slate:      #4a7a8a;
+    --fog:        #f0f8fb;
+    --fog2:       #e4f2f7;
+    --border:     #cce5ed;
+    --text:       #1a3540;
+    --text2:      #4a7a8a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background: var(--fog);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--teal);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    gap: 0.75rem;
+    position: sticky; top: 0; z-index: 200;
+    box-shadow: 0 2px 12px rgba(16,136,168,0.25);
+    flex-shrink: 0;
+  }
+  #back-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff; padding: 0.3rem 0.9rem;
+    border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; transition: background 0.2s;
+    font-family: 'Nunito Sans', sans-serif; text-decoration: none;
+  }
+  #back-btn:hover { background: rgba(255,255,255,0.22); }
+  .logo-badge {
+    background: var(--yellow); border-radius: 6px;
+    padding: 4px 12px; font-family: 'Nunito', sans-serif;
+    font-size: 1rem; font-weight: 900; color: var(--teal); flex-shrink: 0;
+  }
+  .topbar-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.25); }
+  .topbar-info { display: flex; flex-direction: column; }
+  .topbar-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.88rem; color: #fff; }
+  .topbar-sub { font-size: 0.7rem; color: rgba(255,255,255,0.65); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; }
+  #user-avatar { display: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); object-fit: cover; }
+  #user-email { font-size: 0.72rem; color: rgba(255,255,255,0.75); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Edit toggle btn */
+  #edit-toggle-btn {
+    display: none; align-items: center; gap: 0.4rem;
+    background: rgba(248,208,0,0.2); border: 1px solid rgba(248,208,0,0.5);
+    color: var(--yellow); padding: 0.3rem 0.9rem;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; font-family: 'Nunito Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  #edit-toggle-btn.editing { background: var(--yellow); color: var(--teal-dark); border-color: var(--yellow); }
+
+  /* Comments btn */
+  .comments-btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; padding: 0.3rem 0.9rem;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; font-family: 'Nunito Sans', sans-serif; transition: background 0.2s;
+  }
+  .comments-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ── TAB NAV ── */
+  .tabnav {
+    background: var(--white);
+    display: flex; overflow-x: auto; gap: 0;
+    border-bottom: 2px solid var(--border);
+    scrollbar-width: none; position: sticky; top: 64px; z-index: 100;
+    box-shadow: 0 2px 8px rgba(16,136,168,0.06);
+  }
+  .tabnav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    background: none; border: none;
+    color: var(--slate); font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem; font-weight: 700;
+    padding: 0.85rem 1.2rem; cursor: pointer; white-space: nowrap;
+    border-bottom: 3px solid transparent; transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .tab-btn:hover { color: var(--teal); background: var(--teal-pale); }
+  .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); background: var(--teal-pale); }
+  .tab-btn .tab-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--teal-light); color: var(--teal-dark);
+    border-radius: 50%; width: 18px; height: 18px;
+    font-size: 0.62rem; font-weight: 800; margin-right: 5px;
+  }
+  .tab-btn.active .tab-num { background: var(--teal); color: #fff; }
+
+  /* ── CONTENT ── */
+  .content { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── TYPOGRAPHY ── */
+  h1.section-title {
+    font-family: 'Nunito', sans-serif; font-size: 1.8rem; font-weight: 900;
+    color: var(--ink); margin-bottom: 0.25rem; line-height: 1.2;
+  }
+  h1.section-title span { color: var(--teal); }
+  .section-subtitle { color: var(--slate); font-size: 0.88rem; margin-bottom: 2rem; font-weight: 400; }
+  h2 {
+    font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 800;
+    color: var(--ink); margin: 2rem 0 0.8rem;
+    border-bottom: 2px solid var(--teal-light); padding-bottom: 0.4rem;
+  }
+  h3 { font-size: 0.92rem; font-weight: 700; color: var(--ink); margin: 1rem 0 0.4rem; }
+  p, li { font-size: 0.88rem; line-height: 1.7; color: var(--text); }
+  ul { padding-left: 1.2rem; margin-bottom: 0.8rem; }
+  li { margin-bottom: 0.3rem; }
+  strong { color: var(--ink); font-weight: 700; }
+
+  /* ── EDITABLE ── */
+  [data-editable] { border-radius: 3px; transition: background 0.15s; }
+  [data-editable].edit-active {
+    outline: 2px dashed var(--teal-light);
+    background: rgba(16,136,168,0.04);
+    cursor: text; padding: 2px 4px;
+  }
+  [data-editable].edit-active:focus {
+    outline: 2px solid var(--teal);
+    background: rgba(16,136,168,0.07);
+  }
+  .edit-hint {
+    font-size: 0.72rem; color: var(--teal); text-align: right;
+    margin-bottom: 1rem; opacity: 0.8; display: none;
+  }
+  body.is-editor .edit-hint { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.3rem; margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(16,136,168,0.06);
+  }
+  .card-teal { border-left: 4px solid var(--teal); }
+  .card-yellow { border-left: 4px solid var(--yellow); }
+
+  .callout {
+    background: var(--teal-pale); border-left: 4px solid var(--teal);
+    border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin: 1.2rem 0;
+  }
+  .callout-label {
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+    color: var(--teal); text-transform: uppercase; margin-bottom: 0.4rem;
+  }
+  .callout-yellow { background: #fffbe6; border-left-color: var(--yellow-dark); }
+  .callout-yellow .callout-label { color: var(--yellow-dark); }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.8rem; margin: 1rem 0; }
+  @media (max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* ── PILLAR CARDS ── */
+  .pillar-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.3rem; position: relative;
+    overflow: hidden; box-shadow: 0 1px 4px rgba(16,136,168,0.06);
+  }
+  .pillar-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+  .pillar-card.p1::before { background: var(--teal); }
+  .pillar-card.p2::before { background: #00a8b0; }
+  .pillar-card.p3::before { background: var(--yellow-dark); }
+  .pillar-card.p4::before { background: #e8851a; }
+  .pillar-num {
+    font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700;
+    color: var(--teal-light); line-height: 1; position: absolute; right: 1rem; top: 0.5rem;
+  }
+  .pillar-card h3 { color: var(--teal-dark); font-size: 0.95rem; margin-top: 0; }
+  .pillar-card .outcome { font-size: 0.76rem; color: var(--teal); margin-top: 0.8rem; font-weight: 700; }
+  .pillar-card .timeline { font-size: 0.7rem; color: var(--slate); margin-top: 0.25rem; }
+
+  /* ── TABLE ── */
+  .tf-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.84rem; }
+  .tf-table th {
+    background: var(--teal-dark); color: var(--white);
+    padding: 0.65rem 0.9rem; text-align: left; font-weight: 700;
+    font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .tf-table td {
+    padding: 0.6rem 0.9rem; color: var(--text);
+    border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5;
+  }
+  .tf-table tr:nth-child(even) td { background: var(--teal-pale); }
+  .tf-table tr:hover td { background: var(--fog2); }
+  .tf-table td:first-child { color: var(--ink); font-weight: 600; }
+  .priority-high { color: var(--teal-dark); font-weight: 700; }
+  .priority-med { color: #b08000; font-weight: 600; }
+
+  /* ── INTERVENTIONS ── */
+  .intervention {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 0.8rem;
+    border-left: 4px solid var(--teal);
+    box-shadow: 0 1px 4px rgba(16,136,168,0.05);
+  }
+  .intervention-header { display: flex; align-items: flex-start; gap: 0.8rem; margin-bottom: 0.5rem; }
+  .intervention-num {
+    background: var(--teal); color: #fff; width: 26px; height: 26px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 800; flex-shrink: 0;
+  }
+  .intervention h3 { color: var(--teal-dark); margin-top: 0; font-size: 0.9rem; }
+  .intervention-meta { margin-top: 0.6rem; font-size: 0.74rem; color: var(--slate); display: flex; gap: 1.5rem; }
+  .intervention-meta span { color: var(--teal); font-weight: 700; }
+
+  /* ── DOMAIN ── */
+  .domain-header {
+    background: var(--teal-pale); border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0; padding: 0.85rem 1.2rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .domain-badge {
+    background: var(--teal); color: #fff; font-size: 0.68rem;
+    font-weight: 800; padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  }
+  .domain-header h3 { color: var(--teal-dark); margin: 0; font-size: 0.92rem; }
+  .domain-body {
+    background: var(--white); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 8px 8px;
+    padding: 1rem 1.2rem; margin-bottom: 1rem;
+  }
+
+  /* ── STATS ── */
+  .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .stat-box {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.2rem; flex: 1; min-width: 120px;
+    text-align: center; box-shadow: 0 1px 4px rgba(16,136,168,0.06);
+  }
+  .stat-num { font-family: 'Nunito', sans-serif; font-size: 2rem; font-weight: 900; color: var(--teal); line-height: 1; }
+  .stat-label { font-size: 0.72rem; color: var(--slate); margin-top: 0.3rem; line-height: 1.4; }
+
+  /* ── PHASES ── */
+  .phases { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .phase { padding: 1.2rem; border-radius: 10px; }
+  .phase:nth-child(1) { background: var(--teal-pale); border: 2px solid var(--teal-light); }
+  .phase:nth-child(2) { background: #fffbe6; border: 2px solid #f0d800; }
+  .phase:nth-child(3) { background: var(--fog2); border: 2px solid var(--border); }
+  .phase-label { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.3rem; }
+  .phase:nth-child(2) .phase-label { color: #8a6d00; }
+  .phase h3 { color: var(--ink); font-size: 0.88rem; margin: 0 0 0.8rem; }
+  .phase ul { padding-left: 1rem; }
+  .phase li { font-size: 0.76rem; color: var(--text2); margin-bottom: 0.22rem; }
+  @media (max-width: 768px) { .phases { grid-template-columns: 1fr; } }
+
+  /* ── KPI BADGE ── */
+  .kpi-badge {
+    display: inline-block; background: var(--teal-light); color: var(--teal-dark);
+    font-size: 0.68rem; padding: 2px 7px; border-radius: 4px; font-weight: 700;
+  }
+
+  /* ── GLOSSARY ── */
+  .glossary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 1rem 0; }
+  .glossary-item {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.8rem 1rem;
+  }
+  .glossary-term { font-weight: 800; color: var(--teal-dark); font-size: 0.84rem; margin-bottom: 0.2rem; }
+  .glossary-def { font-size: 0.78rem; color: var(--text2); line-height: 1.5; }
+
+  /* ── VISION BOX ── */
+  .vision-box {
+    background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 100%);
+    border-radius: 12px; padding: 2rem; margin: 1.5rem 0;
+    position: relative; overflow: hidden;
+  }
+  .vision-box::after {
+    content: '"'; position: absolute; right: 1.5rem; top: -0.5rem;
+    font-family: 'Playfair Display', serif; font-size: 8rem;
+    color: rgba(255,255,255,0.06); line-height: 1;
+  }
+  .vision-label { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; color: var(--yellow); text-transform: uppercase; margin-bottom: 0.8rem; }
+  .vision-text { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: #fff; line-height: 1.65; font-style: italic; }
+
+  /* ── SAVE BAR ── */
+  #save-bar {
+    display: none; position: fixed; bottom: 1.5rem; right: 1.5rem;
+    gap: 0.5rem; z-index: 300; align-items: center;
+  }
+  .btn {
+    background: var(--teal); color: #fff; border: none;
+    font-family: 'Nunito Sans', sans-serif; font-size: 0.8rem; font-weight: 700;
+    padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;
+  }
+  .btn:hover { background: var(--teal-dark); }
+  .btn-yellow { background: var(--yellow); color: var(--teal-dark); }
+  .btn-yellow:hover { background: var(--yellow-dark); color: var(--teal-dark); }
+  #saveMsg {
+    background: var(--teal-dark); color: var(--teal-light);
+    padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.78rem;
+    display: none; align-items: center; gap: 0.4rem;
+  }
+
+  /* ── COMMENT PROMPT (floating) ── */
+  #comment-prompt {
+    display: none; position: absolute; z-index: 500;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.8rem 1rem;
+    box-shadow: 0 8px 24px rgba(16,136,168,0.18);
+    max-width: 250px;
+  }
+  #prompt-preview { font-size: 0.75rem; color: var(--slate); font-style: italic; margin-bottom: 0.6rem; display: block; }
+  .prompt-btns { display: flex; gap: 0.5rem; }
+  .prompt-btn {
+    font-size: 0.75rem; font-weight: 700; font-family: 'Nunito Sans', sans-serif;
+    border: none; border-radius: 6px; padding: 0.35rem 0.75rem; cursor: pointer;
+  }
+  .prompt-btn-comment { background: var(--teal); color: #fff; }
+  .prompt-btn-dismiss { background: var(--fog); color: var(--slate); }
+
+  /* ── COMMENT PANEL (slide-in from right) ── */
+  #comment-panel {
+    position: fixed; top: 0; right: -380px; width: 360px; height: 100vh;
+    background: var(--white); border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(16,136,168,0.12); z-index: 400;
+    display: flex; flex-direction: column; transition: right 0.3s ease;
+    font-family: 'Nunito Sans', sans-serif;
+  }
+  #comment-panel.open { right: 0; }
+  .panel-header {
+    background: var(--teal); padding: 1rem 1.2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-header h3 { font-family: 'Nunito', sans-serif; color: #fff; font-size: 0.9rem; margin: 0; }
+  .panel-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 1.2rem; cursor: pointer; line-height: 1; }
+  .panel-close:hover { color: #fff; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 1.2rem; }
+  #comment-quote {
+    background: var(--teal-pale); border-left: 3px solid var(--teal);
+    padding: 0.6rem 0.8rem; border-radius: 0 6px 6px 0;
+    font-size: 0.78rem; color: var(--slate); font-style: italic; margin-bottom: 1rem;
+  }
+  #comment-input {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.75rem; font-family: 'Nunito Sans', sans-serif; font-size: 0.85rem;
+    color: var(--text); resize: vertical; min-height: 100px;
+    background: var(--fog); transition: border 0.2s;
+  }
+  #comment-input:focus { outline: none; border-color: var(--teal); background: var(--white); }
+  #submit-comment-btn {
+    width: 100%; margin-top: 0.75rem; background: var(--teal); color: #fff;
+    border: none; border-radius: 8px; padding: 0.7rem;
+    font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; transition: background 0.2s;
+  }
+  #submit-comment-btn:hover { background: var(--teal-dark); }
+  #submit-comment-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── COMMENTS SIDEBAR (view all) ── */
+  #comments-sidebar {
+    position: fixed; top: 0; right: -400px; width: 380px; height: 100vh;
+    background: var(--white); border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(16,136,168,0.12); z-index: 400;
+    display: flex; flex-direction: column; transition: right 0.3s ease;
+  }
+  #comments-sidebar.open { right: 0; }
+  .comment-loading, .comment-empty {
+    font-size: 0.82rem; color: var(--slate); text-align: center;
+    padding: 2rem 1rem; line-height: 1.6;
+  }
+  .comment-item {
+    background: var(--fog); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.9rem; margin-bottom: 0.75rem;
+  }
+  .comment-quote {
+    font-size: 0.75rem; color: var(--slate); font-style: italic;
+    border-left: 3px solid var(--teal-light); padding-left: 0.6rem; margin-bottom: 0.5rem;
+  }
+  .comment-text { font-size: 0.85rem; color: var(--text); margin-bottom: 0.5rem; line-height: 1.5; }
+  .comment-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.72rem; }
+  .comment-author { font-weight: 700; color: var(--teal-dark); }
+  .comment-time { color: var(--slate); }
+  .comment-delete { margin-left: auto; background: none; border: none; color: #c0392b; cursor: pointer; font-size: 0.75rem; opacity: 0.6; }
+  .comment-delete:hover { opacity: 1; }
+  #comment-count {
+    background: var(--yellow); color: var(--teal-dark); font-size: 0.65rem;
+    font-weight: 800; padding: 1px 6px; border-radius: 10px; margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<nav class="topbar">
+  <a href="index.html" id="back-btn">← Hub</a>
+  <div class="logo-badge">tearfund</div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-info">
+    <div class="topbar-title">Talent Strategy 2026–2029</div>
+    <div class="topbar-sub">People & Culture · Confidential</div>
+  </div>
+  <div class="topbar-right">
+    <img id="user-avatar" src="" alt="">
+    <span id="user-email"></span>
+    <button id="edit-toggle-btn" onclick="toggleEditMode()">✎ Edit</button>
+    <button class="comments-btn" onclick="toggleCommentsPanel()">
+      💬 Comments <span id="comment-count">—</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── TAB NAV ── -->
+<nav class="tabnav" id="tabnav">
+  <button class="tab-btn active" onclick="showTab('summary')"><span class="tab-num">★</span>Management Summary</button>
+  <button class="tab-btn" onclick="showTab('context')"><span class="tab-num">1</span>Strategic Context</button>
+  <button class="tab-btn" onclick="showTab('philosophy')"><span class="tab-num">2</span>Talent Philosophy</button>
+  <button class="tab-btn" onclick="showTab('p1')"><span class="tab-num">3</span>Workforce Planning</button>
+  <button class="tab-btn" onclick="showTab('p2')"><span class="tab-num">4</span>Talent Acquisition</button>
+  <button class="tab-btn" onclick="showTab('p3')"><span class="tab-num">5</span>Talent Management</button>
+  <button class="tab-btn" onclick="showTab('p4')"><span class="tab-num">6</span>Talent Development</button>
+  <button class="tab-btn" onclick="showTab('enablers')"><span class="tab-num">7</span>Enablers</button>
+  <button class="tab-btn" onclick="showTab('roadmap')"><span class="tab-num">8</span>Roadmap & KPIs</button>
+  <button class="tab-btn" onclick="showTab('glossary')"><span class="tab-num">?</span>Glossary</button>
+</nav>
+
+<div class="content">
+<p class="edit-hint">✎ Edit mode is on — click any highlighted field to edit</p>
+
+<!-- MANAGEMENT SUMMARY -->
+<div class="tab-panel active" id="tab-summary">
+  <h1 class="section-title">Management <span>Summary</span></h1>
+  <p class="section-subtitle">A quick-reference brief for leadership review and approval</p>
+  <div class="vision-box">
+    <div class="vision-label">Vision 2029</div>
+    <div class="vision-text" data-editable contenteditable="false">By 2029, Tearfund will be known as a mission-driven employer of choice — attracting diverse, locally rooted talent, developing people to lead, and creating the conditions for people to thrive and stay — in direct service of the goal of reaching 250,000 churches by 2030.</div>
+  </div>
+  <h2>What is this?</h2>
+  <p data-editable contenteditable="false">A four-year integrated strategy covering how Tearfund plans, acquires, manages and develops its people — consolidating the Workforce Capability Strategy and Internal Mobility Strategy into a single framework, directly aligned to the 250,000 churches vision.</p>
+  <h2>Why now?</h2>
+  <p data-editable contenteditable="false">Tearfund is shifting from a project implementer to a facilitator and influencer. This requires a fundamentally different workforce — more locally led, more technically specialised, more capable of enabling others. The three most urgent gaps are: talent acquisition pipelines that match our evolving model; management systems that develop and retain people; and localisation of leadership to 70% non-UK by 2028.</p>
+  <h2>Four Pillars at a Glance</h2>
+  <div class="grid-2">
+    <div class="pillar-card p1"><div class="pillar-num">01</div><h3>Workforce Planning</h3><p data-editable contenteditable="false">Reactive headcount management → strategic workforce planning connected to programme strategy and operating models 1, 2 & 3.</p><div class="outcome">All groups have live, annually reviewed workforce plans; critical roles mapped and covered</div><div class="timeline">2026–2029</div></div>
+    <div class="pillar-card p2"><div class="pillar-num">02</div><h3>Talent Acquisition</h3><p data-editable contenteditable="false">Transactional recruitment → proactive, mission-aligned talent pipelines by operating model, faith profile and capability area.</p><div class="outcome">70% non-UK staff; 45% women in leadership; 80% Model 2/3 roles filled regionally</div><div class="timeline">2026–2028</div></div>
+    <div class="pillar-card p3"><div class="pillar-num">03</div><h3>Talent Management</h3><p data-editable contenteditable="false">Fragmented informal HR practices → transparent, skills-first talent management and internal mobility culture.</p><div class="outcome">90% high performer retention; 20% internal mobility rate; all critical roles succession-covered</div><div class="timeline">2026–2029</div></div>
+    <div class="pillar-card p4"><div class="pillar-num">04</div><h3>Talent Development</h3><p data-editable contenteditable="false">Piecemeal learning → structured development across five capability domains with GIF and localisation as priority outcomes.</p><div class="outcome">90% staff in 2+ learning interventions; 100% programme staff GIF-capable</div><div class="timeline">2026–2029</div></div>
+  </div>
+  <h2>Three Cross-Cutting Commitments</h2>
+  <div class="grid-3">
+    <div class="card card-teal"><h3>Localisation</h3><p data-editable contenteditable="false">Every pillar accelerates the shift to a locally led workforce. 70% non-UK by 2028 is a hard target, not an aspiration.</p></div>
+    <div class="card card-teal"><h3>DEI</h3><p data-editable contenteditable="false">Diversity, equity and inclusion embedded across the full talent lifecycle. Annual equity audits apply across all four pillars.</p></div>
+    <div class="card card-teal"><h3>Budget Sustainability</h3><p data-editable contenteditable="false">Designed for constrained resources. Internal talent before external. Peer learning before commissioned programmes.</p></div>
+  </div>
+  <h2>What We Are Asking Leadership to Do</h2>
+  <div class="card card-yellow"><ul>
+    <li data-editable contenteditable="false">Approve this strategy as Tearfund's integrated Talent Strategy for 2026–2029</li>
+    <li data-editable contenteditable="false">Confirm the Talent Lead role and ensure P&amp;C resourcing is adequate for Phase 1 delivery</li>
+    <li data-editable contenteditable="false">Hold Executive Team accountability for quarterly strategy review and annual sign-off</li>
+    <li data-editable contenteditable="false">Champion localisation, DEI and people development as strategic — not operational — priorities</li>
+  </ul></div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-num">838</div><div class="stat-label">Staff across 5 groups, 45 countries, 7 regions (Dec 2025)</div></div>
+    <div class="stat-box"><div class="stat-num">70%</div><div class="stat-label">Non-UK staff target by 2028</div></div>
+    <div class="stat-box"><div class="stat-num">45%</div><div class="stat-label">Women in leadership target</div></div>
+    <div class="stat-box"><div class="stat-num">90%</div><div class="stat-label">High performer retention target</div></div>
+    <div class="stat-box"><div class="stat-num">100%</div><div class="stat-label">Programme staff GIF-capable by Year 2</div></div>
+  </div>
+</div>
+
+<!-- STRATEGIC CONTEXT -->
+<div class="tab-panel" id="tab-context">
+  <h1 class="section-title">Strategic <span>Context</span></h1>
+  <p class="section-subtitle">The transformation imperative, key drivers and external trends</p>
+  <h2>The Transformation Imperative</h2>
+  <p data-editable contenteditable="false">Tearfund's programme strategy represents a fundamental shift in how we work. Moving from a project implementer to a facilitator and influencer requires different capabilities, mindsets, and ways of working. This talent strategy exists to ensure our people are equipped, enabled, and positioned to lead that transformation — in direct service of the goal of serving and resourcing 250,000 churches by 2030.</p>
+  <h2>Key Strategic Shifts</h2>
+  <table class="tf-table">
+    <thead><tr><th>Strategic Shift</th><th>From</th><th>To</th><th>Talent Implication</th></tr></thead>
+    <tbody>
+      <tr><td>Operating Model</td><td data-editable contenteditable="false">Direct delivery and implementation</td><td data-editable contenteditable="false">Facilitation, influencing, and capacity-building of churches</td><td data-editable contenteditable="false">Recruit and develop facilitators, conveners, and advocacy enablers</td></tr>
+      <tr><td>Decision-Making</td><td data-editable contenteditable="false">Global/UK-led decision-making</td><td data-editable contenteditable="false">Local and regional authority and autonomy</td><td data-editable contenteditable="false">70% non-UK staffing; regional HR capability</td></tr>
+      <tr><td>Expertise Focus</td><td data-editable contenteditable="false">Broad generalist capability</td><td data-editable contenteditable="false">Excellence in CCT, EES, RPS, C2R</td><td data-editable contenteditable="false">Deep technical specialists + integrated programme designers</td></tr>
+      <tr><td>Accountability</td><td data-editable contenteditable="false">Activity and output reporting</td><td data-editable contenteditable="false">Data-driven impact via Global Impact Framework (GIF)</td><td data-editable contenteditable="false">Data literacy and M&E capability across all staff</td></tr>
+    </tbody>
+  </table>
+  <h2>Key Drivers</h2>
+  <div class="grid-2">
+    <div class="card card-teal"><h3>Localisation Agenda</h3><p data-editable contenteditable="false">Increasing the proportion of national staff in leadership roles. Target: 70% non-UK staff by 2028.</p></div>
+    <div class="card card-teal"><h3>DEI Commitments</h3><p data-editable contenteditable="false">Embedding DEI across the full talent lifecycle. Target: 45% women in leadership.</p></div>
+    <div class="card card-teal"><h3>Employee Engagement Findings</h3><p data-editable contenteditable="false">Staff surveys identify lack of career development pathways, limited internal opportunity visibility, and insufficient learning investment as key drivers of attrition.</p></div>
+    <div class="card card-teal"><h3>Turnover & Retention Pressures</h3><p data-editable contenteditable="false">Annualised turnover analysis (2025) shows pressure points in specific regions and grades. Confirmed leavers must be disaggregated from scheduled contract completions.</p></div>
+    <div class="card card-teal"><h3>Budget Constraints</h3><p data-editable contenteditable="false">P&C must deliver strategic impact within tighter resource envelopes — requiring prioritisation and a shift from reactive to planned recruitment.</p></div>
+    <div class="card card-teal"><h3>Geographic Expansion</h3><p data-editable contenteditable="false">Tearfund's programme footprint continues to evolve across Models 1, 2 and 3. New country operations require proactive talent pipelines.</p></div>
+  </div>
+  <h2>Global Talent Trends</h2>
+  <table class="tf-table">
+    <thead><tr><th>Trend</th><th>Summary</th><th>Tearfund Implication</th></tr></thead>
+    <tbody>
+      <tr><td>The Skills Revolution</td><td data-editable contenteditable="false">By 2030, 40% of on-the-job skills will change; 63% of employers cite skills gaps as the top barrier. (WEF, 2025)</td><td data-editable contenteditable="false">L&D is a strategic necessity, not a benefit. Field country access is the priority gap.</td></tr>
+      <tr><td>Skills-First Hiring</td><td data-editable contenteditable="false">55% of employers have shifted to skills-based hiring. Competency frameworks expand candidate pools up to sixfold. (Workday/Radancy, 2025)</td><td data-editable contenteditable="false">Directly supports localisation agenda — removes credential barriers excluding national staff.</td></tr>
+      <tr><td>Internal Mobility</td><td data-editable contenteditable="false">Gartner projects one-third of all recruiting effort will shift internally. Internal programmes fill roles 20% faster, cut costs 30–50%. (Gartner/SkillPanel, 2026)</td><td data-editable contenteditable="false">Tearfund's low internal mobility rate is both a risk and an opportunity.</td></tr>
+      <tr><td>Purpose as Differentiator</td><td data-editable contenteditable="false">Only 51% of employees share their employer's optimism. Purpose is a critical mechanism for attracting values-aligned talent. (Randstad, 2026)</td><td data-editable contenteditable="false">Tearfund's faith mission is a genuine competitive differentiator — must be backed by development and career clarity.</td></tr>
+      <tr><td>Localisation-Aligned Shifts</td><td data-editable contenteditable="false">Global market moving toward locally-anchored workforce architectures. Skills-based hiring expands access to nationally rooted talent. (Atlas HXM, 2026)</td><td data-editable contenteditable="false">Global trend validates Tearfund's localisation direction — positions us ahead of the curve.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- PHILOSOPHY -->
+<div class="tab-panel" id="tab-philosophy">
+  <h1 class="section-title">Our Talent <span>Philosophy</span></h1>
+  <p class="section-subtitle">The values and principles that guide how we treat our people</p>
+  <div class="callout callout-yellow">
+    <div class="callout-label">Mission Alignment</div>
+    <p data-editable contenteditable="false">Every element of this strategy exists to serve Tearfund's mission: to see people freed from poverty, living transformed lives and reaching their God-given potential.</p>
+  </div>
+  <h2>Guiding Principles</h2>
+  <div class="grid-2">
+    <div class="card card-teal"><h3>Mission-led</h3><p data-editable contenteditable="false">Talent decisions are made in service of Tearfund's mission. We hire for values alignment alongside technical competence.</p></div>
+    <div class="card card-teal"><h3>Locally Rooted</h3><p data-editable contenteditable="false">We prioritise building talent from within the communities and countries where we work. Localisation is not a target — it is a way of operating.</p></div>
+    <div class="card card-teal"><h3>Fair and Inclusive</h3><p data-editable contenteditable="false">We design fair, transparent processes that give all staff equal access to opportunities, development and recognition.</p></div>
+    <div class="card card-teal"><h3>Evidence-Informed</h3><p data-editable contenteditable="false">We use data to understand our workforce, identify risk, and make better decisions — from workforce planning to succession to learning investment.</p></div>
+    <div class="card card-teal"><h3>Growth-Oriented</h3><p data-editable contenteditable="false">We invest in developing people at every level. Career progression, internal mobility and learning are rights, not privileges.</p></div>
+    <div class="card card-teal"><h3>Sustainable</h3><p data-editable contenteditable="false">We build talent practices that are affordable, scalable and durable — not dependent on large one-off investments.</p></div>
+  </div>
+</div>
+
+<!-- PILLAR 1 -->
+<div class="tab-panel" id="tab-p1">
+  <h1 class="section-title">Pillar 1 — <span>Workforce Planning</span></h1>
+  <p class="section-subtitle">Building the workforce Tearfund needs, now and in the future</p>
+  <div class="callout"><div class="callout-label">Strategic Intent</div><p data-editable contenteditable="false">Tearfund will move from reactive headcount management to strategic workforce planning — anticipating skills needs, modelling scenarios, and ensuring the right people are in the right roles to deliver mission.</p></div>
+  <h2>Current State</h2>
+  <ul>
+    <li data-editable contenteditable="false">No consistent organisation-wide workforce planning methodology currently in use</li>
+    <li data-editable contenteditable="false">Contract type distribution varies significantly across groups with limited central visibility</li>
+    <li data-editable contenteditable="false">Localisation tracking exists at headcount level but lacks role-level granularity or targets</li>
+    <li data-editable contenteditable="false">Succession planning is informal and undocumented for the majority of critical roles</li>
+  </ul>
+  <h2>Strategic Objectives</h2>
+  <ul>
+    <li data-editable contenteditable="false">Establish a consistent, annually updated workforce plan for each group and region by 2027</li>
+    <li data-editable contenteditable="false">Develop a Critical Roles Framework identifying positions essential to mission delivery</li>
+    <li data-editable contenteditable="false">Build scenario models for workforce composition under different funding and programme footprint assumptions</li>
+    <li data-editable contenteditable="false">Set and track localisation targets at role level across all 45 countries</li>
+    <li data-editable contenteditable="false">Integrate workforce planning into the annual business planning cycle by end of 2026</li>
+  </ul>
+  <h2>Proposed Actions</h2>
+  <table class="tf-table">
+    <thead><tr><th>Action</th><th>Owner</th><th>Timeline</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td data-editable contenteditable="false">Conduct compensation equity review: benchmark roles across geographies and develop PPP-adjusted pay bands</td><td data-editable contenteditable="false">P&C / Reward</td><td data-editable contenteditable="false">Q1 2026</td><td><span class="priority-high">High</span></td></tr>
+      <tr><td data-editable contenteditable="false">Design and roll out a Workforce Planning Framework</td><td data-editable contenteditable="false">P&C / Group HRBPs</td><td data-editable contenteditable="false">Q3 2026</td><td><span class="priority-high">High</span></td></tr>
+      <tr><td data-editable contenteditable="false">Establish a Critical Roles Register with succession coverage ratings</td><td data-editable contenteditable="false">Talent Lead / HRBPs</td><td data-editable contenteditable="false">Q4 2026</td><td><span class="priority-high">High</span></td></tr>
+      <tr><td data-editable contenteditable="false">Build a localisation dashboard tracking national/international ratio by grade and country</td><td data-editable contenteditable="false">Workforce Analytics</td><td data-editable contenteditable="false">Q2 2026</td><td><span class="priority-high">High</span></td></tr>
+      <tr><td data-editable contenteditable="false">Develop workforce scenario models for key funding and programme footprint scenarios</td><td data-editable contenteditable="false">P&C Director / Finance</td><td data-editable contenteditable="false">Q1 2027</td><td><span class="priority-med">Medium</span></td></tr>
+      <tr><td data-editable contenteditable="false">Embed workforce planning into annual Group business planning templates</td><td data-editable contenteditable="false">P&C / Strategy</td><td data-editable contenteditable="false">Q4 2026</td><td><span class="priority-med">Medium</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- PILLAR 2 -->
+<div class="tab-panel" id="tab-p2">
+  <h1 class="section-title">Pillar 2 — <span>Talent Acquisition</span></h1>
+  <p class="section-subtitle">Attracting and selecting diverse, values-aligned talent globally</p>
+  <div class="callout"><div class="callout-label">Strategic Intent</div><p data-editable contenteditable="false">Tearfund will build a proactive, inclusive and locally anchored recruitment function — reducing time-to-fill, improving quality and diversity of hires, and prioritising internal and national candidates through fair, structured processes.</p></div>
+  <h2>Priority Talent Profiles</h2>
+  <table class="tf-table">
+    <thead><tr><th>Profile</th><th>Description & Priority</th></tr></thead>
+    <tbody>
+      <tr><td>A. Influencers & Facilitators</td><td data-editable contenteditable="false">Staff who excel at enabling others — facilitative leadership, advocacy enablement, partnership management, capacity building, and cultural intelligence. CRITICAL PRIORITY 2026–2028.</td></tr>
+      <tr><td>B. Thematic Technical Specialists</td><td data-editable contenteditable="false">Expertise in CCT, EES, RPS and C2R — including SGBV, WASH, livelihoods, and food security specialists.</td></tr>
+      <tr><td>C. Integrated Programme Design Specialists</td><td data-editable contenteditable="false">Staff who can synthesise Tearfund's four corporate priorities into coherent interventions across multiple themes and geographies.</td></tr>
+      <tr><td>D. Data & Impact Measurement Specialists</td><td data-editable contenteditable="false">Individuals who can implement the Global Impact Framework — with skills in impact measurement, data analysis and evidence communication.</td></tr>
+    </tbody>
+  </table>
+  <h2>Key Named Programmes</h2>
+  <div class="grid-3">
+    <div class="card card-teal"><h3>PTB Fellows</h3><p data-editable contenteditable="false">2-year rotational graduate programme targeting Model 3 countries. Builds national staff pipeline at entry level.</p></div>
+    <div class="card card-teal"><h3>Homecoming Initiative</h3><p data-editable contenteditable="false">Diaspora recruitment campaign targeting African and Asian professionals. Launches Q1 2027.</p></div>
+    <div class="card card-teal"><h3>Where Faith Meets Impact</h3><p data-editable contenteditable="false">Employer brand campaign with regional EVPs. Communicates Tearfund's faith mission as a talent differentiator.</p></div>
+  </div>
+  <h2>Success Measures</h2>
+  <table class="tf-table">
+    <thead><tr><th>Metric</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Quality of hire</td><td data-editable contenteditable="false">90% of new hires meeting or exceeding expectations at 12-month review</td></tr>
+      <tr><td>Time to hire</td><td data-editable contenteditable="false">60 days for critical roles; 90 days for specialised roles</td></tr>
+      <tr><td>Geographic diversity</td><td data-editable contenteditable="false">70% non-UK staff by 2028</td></tr>
+      <tr><td>Gender diversity</td><td data-editable contenteditable="false">45% women in leadership</td></tr>
+      <tr><td>Regional capacity</td><td data-editable contenteditable="false">80% of Model 2/3 roles filled by regional or national candidates</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- PILLAR 3 -->
+<div class="tab-panel" id="tab-p3">
+  <h1 class="section-title">Pillar 3 — <span>Talent Management</span></h1>
+  <p class="section-subtitle">Recognising, retaining and mobilising our best people</p>
+  <div class="callout"><div class="callout-label">Strategic Intent</div><p data-editable contenteditable="false">Tearfund will build transparent, evidence-based talent management practices — identifying high-potential staff, managing performance fairly, enabling internal mobility, and reducing avoidable attrition.</p></div>
+  <h2>Five Internal Mobility Gaps</h2>
+  <table class="tf-table">
+    <thead><tr><th>Gap Area</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Talent Data Visibility</td><td data-editable contenteditable="false">No skills matrices, performance tracking, or mobility trend analysis. Staff and managers lack data to make informed internal movement decisions.</td></tr>
+      <tr><td>Career Opportunity Visibility</td><td data-editable contenteditable="false">No centralised platform for internal positions, projects, or learning opportunities. Engagement findings confirm staff have limited awareness of available opportunities.</td></tr>
+      <tr><td>Career Development Conversations</td><td data-editable contenteditable="false">Managers are not consistently holding career development conversations — a key driver of retention risk.</td></tr>
+      <tr><td>Performance Differentiation</td><td data-editable contenteditable="false">No framework for distinguishing performance levels or linking performance data to development and reward decisions.</td></tr>
+      <tr><td>Internal Mobility Culture</td><td data-editable contenteditable="false">Credential-focused rather than skills-first; talent hoarding by managers; rejected internal candidates are twice as likely to leave the organisation.</td></tr>
+    </tbody>
+  </table>
+  <h2>Seven Strategic Interventions</h2>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">1</div><div><h3>Skills-First Internal Mobility Framework</h3></div></div><p data-editable contenteditable="false">Move from credential-based to competency-based internal matching. Build a skills taxonomy for core job families and use it to surface internal candidates before external advertising begins.</p><div class="intervention-meta"><span>Owner:</span> Talent Acquisition Lead / P&C <span>Timeline:</span> Q3 2026</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">2</div><div><h3>Internal Talent Marketplace</h3></div></div><p data-editable contenteditable="false">Establish a centrally visible platform for all internal vacancies, project secondments, and short-term assignments. Equitable field country access essential.</p><div class="intervention-meta"><span>Owner:</span> P&C / IT <span>Timeline:</span> Q2 2026</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">3</div><div><h3>Structured Career Development Conversations</h3></div></div><p data-editable contenteditable="false">Mandatory career development conversation framework for all line managers — at minimum annually, linked to performance review.</p><div class="intervention-meta"><span>Owner:</span> L&D / HRBPs <span>Timeline:</span> Q3 2026</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">4</div><div><h3>Manager Capability for Mobility</h3></div></div><p data-editable contenteditable="false">Address talent hoarding through training on shared ownership of talent. Incentivise managers who develop and release staff.</p><div class="intervention-meta"><span>Owner:</span> L&D / HRBPs <span>Timeline:</span> Q4 2026</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">5</div><div><h3>Rejected Internal Candidate Protocol</h3></div></div><p data-editable contenteditable="false">Structured feedback and support for unsuccessful internal candidates. Evidence shows rejected internal candidates are twice as likely to leave — a critical retention intervention.</p><div class="intervention-meta"><span>Owner:</span> HRBPs / Talent Lead <span>Timeline:</span> Q3 2026</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">6</div><div><h3>Short-Term Assignments & Secondments</h3></div></div><p data-editable contenteditable="false">Formalised short-term assignment and secondment programme enabling cross-functional and cross-regional experience.</p><div class="intervention-meta"><span>Owner:</span> Talent Lead / Country Directors <span>Timeline:</span> Q1 2027</div></div>
+  <div class="intervention"><div class="intervention-header"><div class="intervention-num">7</div><div><h3>Internal Mobility Metrics & Reporting</h3></div></div><p data-editable contenteditable="false">Establish baseline metrics for internal mobility rate, internal fill rate, time-to-transition, and retention of internal movers. Report quarterly to P&C leadership.</p><div class="intervention-meta"><span>Owner:</span> Workforce Analytics <span>Timeline:</span> Q4 2026</div></div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-num">90%</div><div class="stat-label">High performer retention</div></div>
+    <div class="stat-box"><div class="stat-num">20%</div><div class="stat-label">Staff in internal mobility annually</div></div>
+    <div class="stat-box"><div class="stat-num">80%+</div><div class="stat-label">Staff engagement score</div></div>
+    <div class="stat-box"><div class="stat-num">100%</div><div class="stat-label">Critical roles succession-covered</div></div>
+  </div>
+</div>
+
+<!-- PILLAR 4 -->
+<div class="tab-panel" id="tab-p4">
+  <h1 class="section-title">Pillar 4 — <span>Talent Development</span></h1>
+  <p class="section-subtitle">Building organisational capability across five domains</p>
+  <div class="callout"><div class="callout-label">Strategic Intent</div><p data-editable contenteditable="false">Tearfund will build a learning and development culture that is equitable, mission-focused and practically accessible for staff in every country and context. Development is structured across five capability domains.</p></div>
+  <h2>Five Development Domains</h2>
+  <div class="domain-header"><span class="domain-badge">Domain 1</span><h3>Influencing and Facilitation Capabilities</h3></div>
+  <div class="domain-body"><p data-editable contenteditable="false">The most critical capability gap — shifting from implementer to influencer. Building facilitative leadership, advocacy enablement, partnership management and cultural intelligence.</p></div>
+  <div class="domain-header"><span class="domain-badge">Domain 2</span><h3>Integrated and Thematic Expertise</h3></div>
+  <div class="domain-body"><p data-editable contenteditable="false">Deepening technical excellence in CCT, EES, RPS and C2R through structured learning pathways, communities of practice, secondments and annual thematic symposiums.</p></div>
+  <div class="domain-header"><span class="domain-badge">Domain 3</span><h3>Data-Driven Decision Making & GIF</h3></div>
+  <div class="domain-body"><p data-editable contenteditable="false">Embedding GIF capability across the organisation. 100% of programme staff GIF-capable by Year 2 (end 2027). Data literacy programme with tiered paths by role level.</p></div>
+  <div class="domain-header"><span class="domain-badge">Domain 4</span><h3>Leadership and Management Excellence</h3></div>
+  <div class="domain-body"><p data-editable contenteditable="false">Regional Leadership Academy (3 cohorts × 20 participants; executive coaching for 30 leaders; 50 stretch assignments). Change leadership workshops, 360-degree feedback, Mentoring Circles.</p></div>
+  <div class="domain-header"><span class="domain-badge">Domain 5</span><h3>Digital and Operational Agility</h3></div>
+  <div class="domain-body"><p data-editable contenteditable="false">Digital literacy, mobile-first LMS deployment (low-bandwidth field contexts), technology adoption support, agile methodology workshops, virtual collaboration skills.</p></div>
+  <h2>Key Named Programmes</h2>
+  <div class="grid-3">
+    <div class="card card-teal"><h3>Regional Leadership Academy</h3><p data-editable contenteditable="false">3 cohorts × 20 participants. Executive coaching for 30 leaders. 50 stretch assignments. Accelerates local leadership pipeline.</p></div>
+    <div class="card card-teal"><h3>Esther Initiative</h3><p data-editable contenteditable="false">Women's accelerator programme with executive coaching cohorts. Target: 45% women in leadership. Launches Q2 2027.</p></div>
+    <div class="card card-teal"><h3>Localisation Development Track</h3><p data-editable contenteditable="false">Targeted investment in high-potential national staff identified for leadership roles. Supports the 70% non-UK staff target by 2028.</p></div>
+  </div>
+</div>
+
+<!-- ENABLERS -->
+<div class="tab-panel" id="tab-enablers">
+  <h1 class="section-title"><span>Enablers</span> & Cross-Cutting Themes</h1>
+  <p class="section-subtitle">The lenses applied consistently across all talent activity</p>
+  <div class="callout"><div class="callout-label">How to read this section</div><p>These are not separate workstreams. They are design requirements applied to every action, every process and every decision across all four pillars.</p></div>
+  <div class="grid-3" style="margin-top:1.5rem;">
+    <div class="card card-teal"><h3>1. Localisation</h3><p data-editable contenteditable="false">Every element of this strategy is designed to accelerate the shift toward a locally led workforce. Role-level localisation targets, skills-first hiring, the Localisation Development Track, and national staff representation in succession plans are non-negotiable design requirements across all four pillars.</p></div>
+    <div class="card card-teal"><h3>2. Diversity, Equity & Inclusion</h3><p data-editable contenteditable="false">DEI is embedded across the full talent lifecycle. Annual equity audits of promotion, performance and pay decisions apply. DEI data disaggregated by gender, nationality and region actively informs decisions in every pillar.</p></div>
+    <div class="card card-teal"><h3>3. Budget Sustainability</h3><p data-editable contenteditable="false">This strategy is designed to be delivered within constrained resources. Exhaust internal talent before recruiting externally. Favour peer learning and manager-led development over externally commissioned programmes.</p></div>
+  </div>
+  <h2>Governance & Accountability</h2>
+  <table class="tf-table">
+    <thead><tr><th>Governance Element</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Strategy Owner</td><td data-editable contenteditable="false">Director, People & Culture</td></tr>
+      <tr><td>Operational Lead</td><td data-editable contenteditable="false">Talent Lead (to be confirmed)</td></tr>
+      <tr><td>Implementation Partners</td><td data-editable contenteditable="false">HRBPs across all five groups; L&D Lead; Workforce Analytics function</td></tr>
+      <tr><td>Executive Accountability</td><td data-editable contenteditable="false">Executive Team — annual strategy review and approval</td></tr>
+      <tr><td>Review Cadence</td><td data-editable contenteditable="false">Quarterly progress reporting to P&C Leadership; Annual strategy review at end of each year</td></tr>
+      <tr><td>Reporting</td><td data-editable contenteditable="false">Annual Workforce & Talent Report to leadership; Key metrics shared with Board as part of P&C reporting</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ROADMAP & KPIs -->
+<div class="tab-panel" id="tab-roadmap">
+  <h1 class="section-title">Roadmap <span>& KPIs</span></h1>
+  <p class="section-subtitle">Three-phase implementation plan and full performance dashboard</p>
+  <h2>Three-Phase Implementation Roadmap</h2>
+  <div class="phases">
+    <div class="phase"><div class="phase-label">Phase 1</div><h3>Foundation<br><small style="font-weight:400;font-size:0.78rem;">Months 1–6 (2026)</small></h3><ul>
+      <li data-editable contenteditable="false">Compensation Equity Review</li>
+      <li data-editable contenteditable="false">Workforce Planning Framework</li>
+      <li data-editable contenteditable="false">Localisation Readiness Audit</li>
+      <li data-editable contenteditable="false">Competency Framework</li>
+      <li data-editable contenteditable="false">EVP Development</li>
+      <li data-editable contenteditable="false">Regional HR Capacity</li>
+      <li data-editable contenteditable="false">Inclusive Hiring Guidelines</li>
+      <li data-editable contenteditable="false">PDPs launched</li>
+      <li data-editable contenteditable="false">L&D Framework published</li>
+      <li data-editable contenteditable="false">Mandatory internal advertising</li>
+      <li data-editable contenteditable="false">Localisation Dashboard</li>
+    </ul></div>
+    <div class="phase"><div class="phase-label">Phase 2</div><h3>Acceleration<br><small style="font-weight:400;font-size:0.78rem;">Months 7–18 (2026–2027)</small></h3><ul>
+      <li data-editable contenteditable="false">Regional Leadership Academy (Cohort 1)</li>
+      <li data-editable contenteditable="false">PTB Fellows Programme launch</li>
+      <li data-editable contenteditable="false">Homecoming Initiative</li>
+      <li data-editable contenteditable="false">Esther Initiative launch</li>
+      <li data-editable contenteditable="false">Performance Management System</li>
+      <li data-editable contenteditable="false">Talent Review & 9-box process</li>
+      <li data-editable contenteditable="false">Mobile-first LMS deployment</li>
+      <li data-editable contenteditable="false">GIF training — all programme staff</li>
+      <li data-editable contenteditable="false">Succession plans (critical roles)</li>
+      <li data-editable contenteditable="false">Retention risk profiling</li>
+      <li data-editable contenteditable="false">Mentoring Programme</li>
+    </ul></div>
+    <div class="phase"><div class="phase-label">Phase 3</div><h3>Institutionalisation<br><small style="font-weight:400;font-size:0.78rem;">Months 19–36 (2027–2029)</small></h3><ul>
+      <li data-editable contenteditable="false">Regional Authority Transfer</li>
+      <li data-editable contenteditable="false">UK headcount refocus (40%)</li>
+      <li data-editable contenteditable="false">Regional Leadership Academy (Cohorts 2 & 3)</li>
+      <li data-editable contenteditable="false">Career Lattice Implementation</li>
+      <li data-editable contenteditable="false">Total Rewards Strategy</li>
+      <li data-editable contenteditable="false">Alumni Engagement Programme</li>
+      <li data-editable contenteditable="false">DEI equity audits</li>
+      <li data-editable contenteditable="false">Strategy review & refresh (2029)</li>
+    </ul></div>
+  </div>
+  <h2>KPI Dashboard</h2>
+  <table class="tf-table">
+    <thead><tr><th>KPI</th><th>Target</th><th>Pillar</th></tr></thead>
+    <tbody>
+      <tr><td>Quality of hire</td><td data-editable contenteditable="false">90% meeting/exceeding expectations at 12 months</td><td><span class="kpi-badge">Acquisition</span></td></tr>
+      <tr><td>Time to hire</td><td data-editable contenteditable="false">60 days critical; 90 days specialised</td><td><span class="kpi-badge">Acquisition</span></td></tr>
+      <tr><td>Geographic diversity</td><td data-editable contenteditable="false">70% non-UK staff by 2028</td><td><span class="kpi-badge">Acquisition</span></td></tr>
+      <tr><td>Gender diversity</td><td data-editable contenteditable="false">45% women in leadership</td><td><span class="kpi-badge">Acquisition</span></td></tr>
+      <tr><td>Localisation ratio</td><td data-editable contenteditable="false">Improves year-on-year against agreed targets</td><td><span class="kpi-badge">Planning</span></td></tr>
+      <tr><td>High performer retention</td><td data-editable contenteditable="false">90%</td><td><span class="kpi-badge">Management</span></td></tr>
+      <tr><td>Internal mobility rate</td><td data-editable contenteditable="false">20% annually</td><td><span class="kpi-badge">Management</span></td></tr>
+      <tr><td>Staff engagement</td><td data-editable contenteditable="false">80%+</td><td><span class="kpi-badge">Management</span></td></tr>
+      <tr><td>Succession coverage</td><td data-editable contenteditable="false">All critical roles covered; reviewed annually</td><td><span class="kpi-badge">Management</span></td></tr>
+      <tr><td>Learning participation</td><td data-editable contenteditable="false">90% of staff in 2+ interventions annually</td><td><span class="kpi-badge">Development</span></td></tr>
+      <tr><td>GIF capability</td><td data-editable contenteditable="false">100% of programme staff by end 2027</td><td><span class="kpi-badge">Development</span></td></tr>
+      <tr><td>Learning application</td><td data-editable contenteditable="false">75% applying within 3 months</td><td><span class="kpi-badge">Development</span></td></tr>
+      <tr><td>Learning culture</td><td data-editable contenteditable="false">80%+ staff agree Tearfund supports continuous learning</td><td><span class="kpi-badge">Development</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- GLOSSARY -->
+<div class="tab-panel" id="tab-glossary">
+  <h1 class="section-title">Glossary of <span>Key Terms</span></h1>
+  <p class="section-subtitle">Definitions of terminology used throughout this strategy document</p>
+  <div class="callout callout-yellow"><div class="callout-label">How to use this glossary</div><p>Written in plain language for leadership and management audiences encountering HR or strategy terminology for the first time.</p></div>
+  <h2>Tearfund-Specific Terms</h2>
+  <div class="glossary-grid">
+    <div class="glossary-item"><div class="glossary-term">CCT</div><div class="glossary-def">Church and Community Transformation — one of Tearfund's four corporate priority areas.</div></div>
+    <div class="glossary-item"><div class="glossary-term">EES</div><div class="glossary-def">Economic and Environmental Sustainability — covers livelihoods, food security and environmental stewardship programmes.</div></div>
+    <div class="glossary-item"><div class="glossary-term">RPS</div><div class="glossary-def">Resilience and Peacebuilding — covers disaster risk management, conflict resolution and community resilience.</div></div>
+    <div class="glossary-item"><div class="glossary-term">C2R</div><div class="glossary-def">Church to Response — enables churches to respond rapidly and effectively in humanitarian crises.</div></div>
+    <div class="glossary-item"><div class="glossary-term">GIF</div><div class="glossary-def">Global Impact Framework — Tearfund's organisation-wide system for measuring and reporting programme impact.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Operating Models 1/2/3</div><div class="glossary-def">Model 1 (Influencing Only), Model 2 (Influencing + Resourcing), Model 3 (Full Engagement).</div></div>
+    <div class="glossary-item"><div class="glossary-term">HRBP</div><div class="glossary-def">HR Business Partner — a P&C professional embedded with a specific group or region.</div></div>
+    <div class="glossary-item"><div class="glossary-term">PTB Fellows</div><div class="glossary-def">A 2-year rotational graduate programme targeting Model 3 countries. Builds national staff pipeline at entry level.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Esther Initiative</div><div class="glossary-def">Tearfund's women's accelerator programme. Target: 45% women in leadership by 2028.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Homecoming Initiative</div><div class="glossary-def">Diaspora recruitment campaign targeting African and Asian professionals living abroad.</div></div>
+    <div class="glossary-item"><div class="glossary-term">FTC</div><div class="glossary-def">Fixed-Term Contract — an employment contract with a defined end date.</div></div>
+    <div class="glossary-item"><div class="glossary-term">PPP</div><div class="glossary-def">Purchasing Power Parity — adjusting salaries to account for different costs of living across countries.</div></div>
+  </div>
+  <h2>HR / Talent Strategy Terms</h2>
+  <div class="glossary-grid">
+    <div class="glossary-item"><div class="glossary-term">Talent Acquisition</div><div class="glossary-def">A strategic, long-term approach to identifying and building pipelines of future talent — broader than recruitment.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Internal Mobility</div><div class="glossary-def">Movement of employees into different roles within the organisation — promotions, lateral moves, secondments.</div></div>
+    <div class="glossary-item"><div class="glossary-term">9-Box Talent Review</div><div class="glossary-def">A framework assessing employees on current performance and future potential to identify high-potential staff.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Career Lattice</div><div class="glossary-def">A modern alternative to the career ladder — staff move sideways, diagonally or across functions, not just upward.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Skills-First Hiring</div><div class="glossary-def">Removing credential requirements and assessing candidates purely on demonstrated capability.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Succession Planning</div><div class="glossary-def">Identifying and preparing potential future holders of key leadership and critical roles.</div></div>
+    <div class="glossary-item"><div class="glossary-term">EVP</div><div class="glossary-def">Employer Value Proposition — the full package of reasons why someone would choose to work for Tearfund.</div></div>
+    <div class="glossary-item"><div class="glossary-term">DEI</div><div class="glossary-def">Diversity, Equity and Inclusion — ensuring the workforce reflects the communities Tearfund serves.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Localisation</div><div class="glossary-def">The deliberate shift of decision-making and leadership toward national and regional staff by 2028.</div></div>
+    <div class="glossary-item"><div class="glossary-term">LMS</div><div class="glossary-def">Learning Management System — digital platform for delivering, tracking and managing staff learning.</div></div>
+    <div class="glossary-item"><div class="glossary-term">Talent Hoarding</div><div class="glossary-def">When managers resist releasing high-performing staff for internal moves or development opportunities elsewhere.</div></div>
+    <div class="glossary-item"><div class="glossary-term">PDP</div><div class="glossary-def">Personal Development Plan — a structured document setting out learning goals and career aspirations.</div></div>
+  </div>
+</div>
+
+</div><!-- end .content -->
+
+<!-- ── SAVE BAR (editor only) ── -->
+<div id="save-bar">
+  <div id="saveMsg">✓ Saved</div>
+  <button class="btn btn-yellow" onclick="exportContent()">⬇ Export</button>
+  <button class="btn" onclick="saveLocal()">💾 Save Changes</button>
+</div>
+
+<!-- ── COMMENT PROMPT (floating on text select) ── -->
+<div id="comment-prompt">
+  <span id="prompt-preview"></span>
+  <div class="prompt-btns">
+    <button class="prompt-btn prompt-btn-comment" onclick="openCommentPanel()">💬 Add Comment</button>
+    <button class="prompt-btn prompt-btn-dismiss" onclick="dismissPrompt()">Dismiss</button>
+  </div>
+</div>
+
+<!-- ── ADD COMMENT PANEL ── -->
+<div id="comment-panel">
+  <div class="panel-header">
+    <h3>Add Comment</h3>
+    <button class="panel-close" onclick="closeCommentPanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div id="comment-quote"></div>
+    <textarea id="comment-input" placeholder="Type your comment here…"></textarea>
+    <button id="submit-comment-btn" onclick="submitComment()">Post Comment</button>
+  </div>
+</div>
+
+<!-- ── VIEW ALL COMMENTS SIDEBAR ── -->
+<div id="comments-sidebar">
+  <div class="panel-header">
+    <h3>All Comments <span id="comment-count" style="margin-left:6px;">—</span></h3>
+    <button class="panel-close" onclick="toggleCommentsPanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div id="comments-list"></div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) b.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+}
+
+// Auto-save on edit (local)
+let autoSaveTimer;
+document.addEventListener('input', () => {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { if (typeof saveLocal === 'function') saveLocal(); }, 2000);
+});
+</script>
+</body>
+</html>
